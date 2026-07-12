@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>NABItan</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -504,6 +505,11 @@ body{
 var WORKER_URL = 'https://nabitan-api.nikkoriphoto63.workers.dev';
 var GAS_URL    = 'https://script.google.com/macros/s/AKfycbwzypaSFCgcpFfcdvnok9JJYgqBCn6NpDhZV9npVw5K8jISDQkPRmJKgOPktSV30e7WUA/exec';
 
+// LIFF（v3.56〜）：同一プロバイダーのLINE LoginチャネルのLIFF IDをここに貼る。
+// UIDは liff.getProfile() で取得。URLの ?uid= は後方互換フォールバックとして併用。
+var LIFF_ID     = 'ここにLIFF_IDを貼る';   // 例: 2009693555-AbCdEfGh
+var liffIdToken = '';                        // ID Token（将来のGAS検証用・任意）
+
 // ================================================================
 // 状態変数
 // ================================================================
@@ -644,14 +650,29 @@ var PERSONAS = [
 // ================================================================
 // 初期化
 // ================================================================
-window.addEventListener('DOMContentLoaded', function() {
+// UIDを解決：LIFF優先（LINE内で開いた場合）→ URLの ?uid=（後方互換フォールバック・PC/外部ブラウザ）
+async function resolveUid_() {
+  try {
+    if (window.liff && LIFF_ID && LIFF_ID !== 'ここにLIFF_IDを貼る') {
+      await liff.init({ liffId: LIFF_ID });
+      if (liff.isLoggedIn()) {
+        var prof = await liff.getProfile();
+        try { liffIdToken = liff.getIDToken() || ''; } catch (e) {}
+        if (prof && prof.userId) return prof.userId;
+      }
+    }
+  } catch (e) { /* LIFF不可（外部ブラウザ等）→ URL param にフォールバック */ }
   var params = new URLSearchParams(window.location.search);
-  lineUid = params.get('uid') || '';
-  if (!lineUid) { showScreen('error'); return; }
+  return params.get('uid') || '';
+}
 
-  fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid))
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
+window.addEventListener('DOMContentLoaded', function() {
+  (async function boot() {
+    lineUid = await resolveUid_();
+    if (!lineUid) { showScreen('error'); return; }
+    try {
+      var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+      var data = await r.json();
       if (data.ok && data.registered) {
         userInfo = data;
         openChat(false);
@@ -659,8 +680,11 @@ window.addEventListener('DOMContentLoaded', function() {
         applySenseiWelcomeIfNeeded_();
         showScreen('welcome');
       }
-    })
-    .catch(function() { applySenseiWelcomeIfNeeded_(); showScreen('welcome'); });
+    } catch (e) {
+      applySenseiWelcomeIfNeeded_();
+      showScreen('welcome');
+    }
+  })();
 });
 
 // ================================================================
