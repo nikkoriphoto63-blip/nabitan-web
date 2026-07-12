@@ -30,8 +30,15 @@ body{
    メニューバー（2段・チャット画面のみ表示）
 ================================================================ */
 #menu-bar{
-  background:#fff;border-bottom:1px solid #e0e8e0;flex-shrink:0;display:none;
+  background:#fff;border-bottom:1px solid #e0e8e0;flex-shrink:0;display:none;position:relative;
 }
+/* 右端フェード：メニューが横にはみ出している時だけ表示し「まだ右に続く」を示す */
+#menu-fade{
+  position:absolute;top:0;right:0;bottom:0;width:34px;pointer-events:none;z-index:3;
+  background:linear-gradient(to left,#ffffff 28%,rgba(255,255,255,0));
+  opacity:0;transition:opacity .2s;
+}
+#menu-fade.show{opacity:1;}
 /* 1段目 */
 #menu-row1{
   display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;
@@ -258,6 +265,8 @@ body{
   <div id="menu-row1"></div>
   <!-- 2段目：緊急・設定系（renderMenuTabs() が動的生成） -->
   <div id="menu-row2"></div>
+  <!-- 右端フェード：横にはみ出している時だけ表示（「まだ右に続く」の視覚案内）-->
+  <div id="menu-fade"></div>
 </div>
 
 <!-- ① エラー画面 -->
@@ -636,7 +645,21 @@ function renderMenuTabs() {
     t.onclick = function() { toggleSenseiMode(); };
     r2.appendChild(t);
   }
+  if (window.requestAnimationFrame) requestAnimationFrame(updateMenuFade); else setTimeout(updateMenuFade, 0);
 }
+
+// メニューが横にはみ出している時だけ、右端フェードを表示する
+function updateMenuFade() {
+  var f = document.getElementById('menu-fade');
+  if (!f) return;
+  var over = function(el){ return !!el && el.scrollWidth > el.clientWidth + 2; };
+  if (over(document.getElementById('menu-row1')) || over(document.getElementById('menu-row2'))) {
+    f.classList.add('show');
+  } else {
+    f.classList.remove('show');
+  }
+}
+window.addEventListener('resize', updateMenuFade);
 
 // キャラクター（ペルソナ）一覧。key は families の persona 列／GAS PERSONA_KEYS と一致。
 var PERSONAS = [
