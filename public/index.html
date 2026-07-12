@@ -651,47 +651,25 @@ var PERSONAS = [
 // 初期化
 // ================================================================
 // UIDを解決：LIFF優先（LINE内で開いた場合）→ URLの ?uid=（後方互換フォールバック・PC/外部ブラウザ）
-var _liffDiag = '';
 async function resolveUid_() {
   try {
-    if (!window.liff) {
-      _liffDiag = 'liff SDK 未読込';
-    } else if (!LIFF_ID || LIFF_ID === 'ここにLIFF_IDを貼る') {
-      _liffDiag = 'LIFF_ID未設定=[' + LIFF_ID + ']';
-    } else {
+    if (window.liff && LIFF_ID && LIFF_ID !== 'ここにLIFF_IDを貼る') {
       await liff.init({ liffId: LIFF_ID });
-      var inClient = (typeof liff.isInClient === 'function') ? liff.isInClient() : '?';
-      var logged   = liff.isLoggedIn();
-      _liffDiag = 'init OK / inClient=' + inClient + ' / loggedIn=' + logged;
-      if (logged) {
+      if (liff.isLoggedIn()) {
         var prof = await liff.getProfile();
         try { liffIdToken = liff.getIDToken() || ''; } catch (e) {}
         if (prof && prof.userId) return prof.userId;
-        _liffDiag += ' / profileにuserId無';
       }
     }
-  } catch (e) {
-    _liffDiag = 'init/profileエラー: ' + (e && e.message ? e.message : String(e));
-  }
+  } catch (e) { /* LIFF不可（外部ブラウザ等）→ URL param にフォールバック */ }
   var params = new URLSearchParams(window.location.search);
-  var u = params.get('uid') || '';
-  if (!u) _liffDiag += ' / URLにもuid無';
-  return u;
+  return params.get('uid') || '';
 }
 
 window.addEventListener('DOMContentLoaded', function() {
   (async function boot() {
     lineUid = await resolveUid_();
-    if (!lineUid) {
-      showScreen('error');
-      try {
-        var _d = document.createElement('div');
-        _d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;background:#222;color:#9fef9f;font-size:11px;line-height:1.5;padding:8px;z-index:99999;word-break:break-all;';
-        _d.textContent = '診断: ' + _liffDiag;
-        document.body.appendChild(_d);
-      } catch (e) {}
-      return;
-    }
+    if (!lineUid) { showScreen('error'); return; }
     try {
       var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
       var data = await r.json();
