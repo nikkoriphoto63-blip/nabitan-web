@@ -707,7 +707,10 @@ function showScreen(name) {
 // チャット画面を開く
 // ================================================================
 function openChat(isNew) {
-  senseiChatMode = 'sensei';         // 開くたびに先生モードから開始（両メニュー開放・実装D）
+  // 通常は先生モードで開始。ただし「子育て」タイル(?as=kosodate)から開いた先生ユーザーは
+  // 子育てモードで開始する（先生の子育て特典・方式Y）。
+  var _asHint = new URLSearchParams(window.location.search).get('as');
+  senseiChatMode = (isSenseiUser() && _asHint === 'kosodate') ? 'kosodate' : 'sensei';
   document.getElementById('header-title').textContent =
     isActingSensei() ? '先生NABItan チャット' : 'NABItan チャット';
   showScreen('chat');
