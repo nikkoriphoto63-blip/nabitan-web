@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NABItan</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;
+  background:#f0f4f0;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ================================================================
+   ヘッダー
+================================================================ */
+#header{
+  background:#4caf82;color:white;padding:10px 14px;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+#header-logo{font-size:20px;}
+#header-title{font-size:16px;font-weight:bold;flex:1;}
+#header-back{
+  background:rgba(255,255,255,0.25);border:none;color:white;
+  border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap;
+}
+
+/* ================================================================
+   メニューバー（2段・チャット画面のみ表示）
+================================================================ */
+#menu-bar{
+  background:#fff;border-bottom:1px solid #e0e8e0;flex-shrink:0;display:none;
+}
+/* 1段目 */
+#menu-row1{
+  display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;gap:0;
+}
+#menu-row1::-webkit-scrollbar{display:none;}
+.menu-tab{
+  flex-shrink:0;padding:9px 14px;font-size:12px;color:#777;
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+  transition:all .15s;text-align:center;
+}
+.menu-tab.active{color:#4caf82;border-bottom-color:#4caf82;font-weight:bold;}
+.menu-tab:active{background:#f5f5f5;}
+/* 2段目（緊急・設定系） */
+#menu-row2{
+  display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;gap:0;border-top:1px solid #f0f0f0;
+}
+#menu-row2::-webkit-scrollbar{display:none;}
+.menu-tab2{
+  flex-shrink:0;padding:7px 12px;font-size:11px;color:#999;
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.menu-tab2.active{color:#e07070;font-weight:bold;}
+.menu-tab2.setting{color:#888;}
+.menu-tab2.setting.active{color:#4caf82;font-weight:bold;}
+
+/* ================================================================
+   画面共通
+================================================================ */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ================================================================
+   エラー画面
+================================================================ */
+#screen-error{align-items:center;justify-content:center;padding:40px 24px;text-align:center;gap:20px;}
+#screen-error .icon{font-size:52px;}
+#screen-error .msg{
+  font-size:15px;line-height:1.9;color:#555;
+  background:white;border-radius:16px;padding:20px 24px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+/* ================================================================
+   ウェルカム画面
+================================================================ */
+#screen-welcome{align-items:center;justify-content:center;padding:32px 24px;gap:20px;overflow-y:auto;}
+.welcome-logo{font-size:52px;}
+.welcome-title{font-size:22px;font-weight:bold;color:#3a9e72;text-align:center;}
+.welcome-bubble{
+  background:white;border-radius:18px;border-bottom-left-radius:4px;
+  padding:16px 20px;font-size:14px;line-height:1.75;color:#333;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:320px;white-space:pre-wrap;
+  align-self:flex-start;
+}
+.btn-primary{
+  background:#4caf82;color:white;border:none;border-radius:28px;
+  padding:14px 0;font-size:16px;font-weight:bold;cursor:pointer;width:100%;max-width:280px;
+}
+.btn-primary:active{background:#3a9e72;}
+.btn-outline{
+  background:white;color:#4caf82;border:2px solid #4caf82;border-radius:28px;
+  padding:12px 0;font-size:15px;cursor:pointer;width:100%;max-width:280px;
+}
+
+/* ================================================================
+   登録フォーム画面
+================================================================ */
+#screen-register{overflow-y:auto;padding:20px 20px 40px;}
+.step-indicator{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px;}
+.step-dot{width:10px;height:10px;border-radius:50%;background:#ddd;transition:background .2s;}
+.step-dot.done{background:#4caf82;}
+.step-dot.current{background:#4caf82;box-shadow:0 0 0 3px rgba(76,175,130,.3);}
+.reg-step{display:none;}
+.reg-step.active{display:block;}
+.step-title{font-size:18px;font-weight:bold;color:#333;margin-bottom:6px;}
+.step-sub{font-size:13px;color:#888;margin-bottom:18px;line-height:1.6;}
+.form-label{font-size:13px;color:#555;margin-bottom:5px;display:block;font-weight:500;}
+.form-input{
+  width:100%;border:1.5px solid #ddd;border-radius:10px;
+  padding:11px 14px;font-size:16px;font-family:inherit;outline:none;
+  margin-bottom:14px;background:#fafafa;
+}
+.form-input:focus{border-color:#4caf82;background:white;}
+.radio-group{display:flex;gap:10px;margin-bottom:14px;}
+.radio-btn{
+  flex:1;border:1.5px solid #ddd;border-radius:10px;padding:12px 8px;
+  text-align:center;cursor:pointer;font-size:14px;background:#fafafa;transition:all .15s;
+}
+.radio-btn.selected{border-color:#4caf82;background:#e8f5ee;color:#3a9e72;font-weight:bold;}
+.step-nav{display:flex;gap:10px;margin-top:8px;}
+.btn-next{
+  flex:1;background:#4caf82;color:white;border:none;border-radius:24px;
+  padding:13px;font-size:15px;font-weight:bold;cursor:pointer;
+}
+.btn-next:disabled{background:#ccc;cursor:default;}
+.btn-back-step{
+  background:white;color:#888;border:1.5px solid #ddd;border-radius:24px;
+  padding:13px 18px;font-size:14px;cursor:pointer;flex-shrink:0;
+}
+.child-item{
+  background:#f8faf8;border:1px solid #e0e8e0;border-radius:10px;
+  padding:10px 14px;margin-bottom:8px;font-size:14px;color:#555;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.child-item button{background:none;border:none;color:#e88;cursor:pointer;font-size:16px;}
+.hint{font-size:12px;color:#aaa;margin-top:-10px;margin-bottom:12px;line-height:1.5;}
+
+/* 友達紹介・家族情報カード（チャット内に挿入） */
+.info-card{
+  align-self:stretch;background:white;border:1px solid #e0e8e0;border-radius:14px;
+  padding:16px;margin:2px 0 6px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.info-card .card-title{font-size:15px;font-weight:bold;color:#3a9e72;margin-bottom:12px;}
+.info-card .card-text{font-size:13px;color:#555;line-height:1.7;white-space:pre-wrap;}
+.share-qr{display:block;width:160px;height:160px;margin:8px auto 12px;border:1px solid #eee;border-radius:8px;}
+.share-code{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:#f0f7f3;border-radius:10px;padding:10px 12px;margin:10px 0;
+}
+.share-code b{font-size:16px;color:#3a9e72;letter-spacing:.5px;}
+.fam-member{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#f8faf8;border:1px solid #e0e8e0;border-radius:10px;
+  padding:9px 12px;margin-bottom:7px;font-size:14px;color:#444;
+}
+.fam-member small{color:#999;font-size:12px;}
+.fam-btn{
+  display:block;width:100%;text-align:left;background:#fafafa;border:1.5px solid #ddd;
+  border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:14px;cursor:pointer;color:#333;
+}
+.fam-btn:active{background:#eef6f1;border-color:#4caf82;}
+.fam-actions{display:flex;gap:8px;margin-top:10px;}
+.fam-cancel{
+  background:white;color:#888;border:1.5px solid #ddd;border-radius:22px;
+  padding:11px 16px;font-size:14px;cursor:pointer;flex-shrink:0;
+}
+.fam-save{
+  flex:1;background:#4caf82;color:white;border:none;border-radius:22px;
+  padding:12px;font-size:15px;font-weight:bold;cursor:pointer;
+}
+.fam-save:disabled{background:#ccc;cursor:default;}
+.fam-note{font-size:12px;color:#c0392b;background:#fdf0ee;border-radius:8px;padding:8px 10px;margin:6px 0;line-height:1.5;}
+
+/* ================================================================
+   チャット画面
+================================================================ */
+#chat-area{
+  flex:1;overflow-y:auto;padding:14px 14px 6px;
+  display:flex;flex-direction:column;gap:10px;
+  -webkit-overflow-scrolling:touch;
+}
+.bubble{
+  max-width:82%;padding:10px 14px;border-radius:18px;
+  font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;
+}
+.bubble.user{background:#4caf82;color:white;align-self:flex-end;border-bottom-right-radius:4px;}
+.bubble.ai{
+  background:white;color:#333;align-self:flex-start;
+  border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.bubble.system{
+  background:#f0f7f3;color:#5a9a7a;align-self:center;
+  border-radius:12px;font-size:12px;padding:6px 14px;max-width:90%;text-align:center;
+}
+.persona-choices{
+  align-self:center;display:flex;flex-direction:column;gap:8px;
+  width:90%;max-width:360px;margin:2px 0 6px;
+}
+.persona-choice{
+  display:flex;flex-direction:column;gap:2px;text-align:left;
+  background:white;border:1.5px solid #d6e8df;border-radius:14px;
+  padding:10px 14px;cursor:pointer;font-family:inherit;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);transition:border-color .15s,background .15s;
+}
+.persona-choice:hover{border-color:#4caf82;}
+.persona-choice b{font-size:14px;color:#333;}
+.persona-choice span{font-size:12px;color:#888;}
+.persona-choice.current{border-color:#4caf82;background:#eef7f2;}
+.persona-choice.current b::after{content:' ✓';color:#4caf82;}
+.typing{display:inline-flex;gap:4px;padding:4px 2px;}
+.typing span{width:7px;height:7px;background:#bbb;border-radius:50%;animation:bounce 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+#input-area{
+  background:white;border-top:1px solid #e0e0e0;
+  padding:8px 10px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;
+}
+#msg-input{
+  flex:1;border:1.5px solid #ddd;border-radius:20px;
+  padding:9px 14px;font-size:15px;font-family:inherit;
+  resize:none;outline:none;max-height:120px;line-height:1.5;background:#fafafa;
+}
+#msg-input:focus{border-color:#4caf82;background:white;}
+#send-btn{
+  background:#4caf82;color:white;border:none;border-radius:50%;
+  width:42px;height:42px;font-size:19px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#send-btn:disabled{background:#ccc;cursor:default;}
+
+/* ================================================================
+   登録完了画面
+================================================================ */
+#screen-done{align-items:center;justify-content:center;padding:40px 24px;gap:20px;text-align:center;}
+#screen-done .icon{font-size:56px;}
+#screen-done h2{font-size:20px;font-weight:bold;color:#3a9e72;}
+#screen-done p{font-size:14px;color:#666;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div id="header">
+  <span id="header-logo">🌿</span>
+  <span id="header-title">NABItan</span>
+</div>
+
+<!-- メニューバー（チャット時のみ表示） -->
+<div id="menu-bar">
+  <!-- 1段目：主要メニュー（renderMenuTabs() が serviceType に応じて動的生成） -->
+  <div id="menu-row1"></div>
+  <!-- 2段目：緊急・設定系（renderMenuTabs() が動的生成） -->
+  <div id="menu-row2"></div>
+</div>
+
+<!-- ① エラー画面 -->
+<div id="screen-error" class="screen">
+  <div class="icon">🌷</div>
+  <div class="msg">
+    このページはLINEの<br>NABItanから届いたリンクで<br>開いてください🌿<br><br>
+    リッチメニューの<br>「おやこ向け」をタップすると<br>リンクが届きます🌸
+  </div>
+</div>
+
+<!-- ② ウェルカム画面（未登録） -->
+<div id="screen-welcome" class="screen">
+  <div class="welcome-logo">🌸</div>
+  <div class="welcome-title">子育てNABItan</div>
+  <div class="welcome-bubble">こんにちは🌸 NABItanです🌿
+
+よろしければ登録してください🌷
+登録するとあなたとご家族の
+バイオリズムを毎日お届けします🌿</div>
+  <button class="btn-primary" onclick="startRegister()">登録する</button>
+</div>
+
+<!-- ③ 登録フォーム画面 -->
+<div id="screen-register" class="screen">
+  <div class="step-indicator" id="step-dots"></div>
+
+  <!-- Step1: 役割 -->
+  <div class="reg-step" id="step-1">
+    <div class="step-title">あなたの役割</div>
+    <div class="step-sub">登録するのはどちらですか？</div>
+    <div class="radio-group">
+      <div class="radio-btn" id="role-mother" onclick="selectRole('母')">👩 お母さん</div>
+      <div class="radio-btn" id="role-father" onclick="selectRole('父')">👨 お父さん</div>
+    </div>
+    <div class="step-nav">
+      <button class="btn-next" id="btn-s1" onclick="goStep(2)" disabled>次へ</button>
+    </div>
+  </div>
+
+  <!-- Step2: 保護者氏名 -->
+  <div class="reg-step" id="step-2">
+    <div class="step-title">あなたのお名前</div>
+    <div class="step-sub">フルネームを入力してください🌸</div>
+    <label class="form-label">姓（苗字）</label>
+    <input class="form-input" id="p-last" type="text" placeholder="例：佐原" oninput="validateStep2()">
+    <label class="form-label">名（下の名前）</label>
+    <input class="form-input" id="p-first" type="text" placeholder="例：花子" oninput="validateStep2()">
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(1)">戻る</button>
+      <button class="btn-next" id="btn-s2" onclick="goStep(3)" disabled>次へ</button>
+    </div>
+  </div>
+
+  <!-- Step3: 保護者 生年月日 -->
+  <div class="reg-step" id="step-3">
+    <div class="step-title">あなたの生年月日</div>
+    <div class="step-sub">バイオリズム計算に使います🌿</div>
+    <label class="form-label">生年月日</label>
+    <input class="form-input" id="p-birth" type="text" placeholder="例：19850401">
+    <div class="hint">8桁の数字 または 1985/04/01 形式<br>（不明な場合は空欄でも可）</div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(2)">戻る</button>
+      <button class="btn-next" onclick="goFromParentBirth()">次へ</button>
+    </div>
+  </div>
+
+  <!-- Step4: パートナー -->
+  <div class="reg-step" id="step-4">
+    <div class="step-title">パートナーはいますか？</div>
+    <div class="step-sub">登録するとおふたりのリズムを<br>あわせて見守れます🌿</div>
+    <div class="radio-group">
+      <div class="radio-btn" id="partner-yes" onclick="selectPartner(true)">いる</div>
+      <div class="radio-btn" id="partner-no"  onclick="selectPartner(false)">いない</div>
+    </div>
+    <div id="partner-form" style="display:none;">
+      <label class="form-label">パートナーの姓</label>
+      <input class="form-input" id="pt-last"  type="text" placeholder="例：佐原">
+      <label class="form-label">パートナーの名</label>
+      <input class="form-input" id="pt-first" type="text" placeholder="例：太郎">
+      <label class="form-label">パートナーの生年月日</label>
+      <input class="form-input" id="pt-birth" type="text" placeholder="例：19830601">
+    </div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(3)">戻る</button>
+      <button class="btn-next" id="btn-s4" onclick="goStep(5)" disabled>次へ</button>
+    </div>
+  </div>
+
+  <!-- Step5: 子ども -->
+  <div class="reg-step" id="step-5">
+    <div class="step-title">お子さんの情報</div>
+    <div class="step-sub">お子さんを追加してください🌸<br>（いない場合はそのまま次へ）</div>
+    <div id="children-list"></div>
+    <div id="child-input-block">
+      <label class="form-label">姓</label>
+      <input class="form-input" id="c-last"  type="text" placeholder="例：佐原">
+      <label class="form-label">名</label>
+      <input class="form-input" id="c-first" type="text" placeholder="例：太郎">
+      <label class="form-label">生年月日</label>
+      <input class="form-input" id="c-birth" type="text" placeholder="例：20180715">
+      <button class="btn-outline" style="margin-bottom:14px;font-size:14px;" onclick="addChild()">➕ このお子さんを追加する</button>
+    </div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(4)">戻る</button>
+      <button class="btn-next" onclick="goStep(6)">次へ</button>
+    </div>
+  </div>
+
+  <!-- Step6: ファミリーID -->
+  <div class="reg-step" id="step-6">
+    <div class="step-title">ファミリーIDはありますか？</div>
+    <div class="step-sub">ご家族が登録済みの場合は<br>ファミリーIDを入力すると<br>ファミリー料金（月額800円）になります🌿</div>
+    <div class="radio-group">
+      <div class="radio-btn" id="fid-yes" onclick="selectFamilyId(true)">ある</div>
+      <div class="radio-btn" id="fid-no"  onclick="selectFamilyId(false)">ない</div>
+    </div>
+    <div id="fid-form" style="display:none;">
+      <label class="form-label">ファミリーID（英数字8文字）</label>
+      <input class="form-input" id="fid-input" type="text" placeholder="例：A1B2C3D4" maxlength="8">
+    </div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(5)">戻る</button>
+      <button class="btn-next" id="btn-s6" onclick="submitRegister()" disabled>内容を確認</button>
+    </div>
+  </div>
+
+  <!-- Step(先生): 勤務先施設・緊急連絡先（保育士登録のみ） -->
+  <div class="reg-step" id="step-sensei">
+    <div class="step-title">勤務先と連絡先</div>
+    <div class="step-sub">先生としての登録に使います🌿<br>（あとから変更できます）</div>
+    <label class="form-label">勤務先の施設名</label>
+    <input class="form-input" id="s-workplace" type="text" placeholder="例：にっこり保育園">
+    <label class="form-label">施設（園長）の連絡先メール（任意）</label>
+    <input class="form-input" id="s-emergency" type="email" inputmode="email" placeholder="例：en@example.com">
+    <div class="hint">災害時の安否報告や、保護者対応の文面を施設長に共有するのに使います🌸<br>（園長先生などのメール・空欄でも後から登録できます）</div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep(3)">戻る</button>
+      <button class="btn-next" id="btn-sensei" onclick="goStep('sensei-students')">次へ</button>
+    </div>
+  </div>
+
+  <!-- Step(先生): お試しの園児・生徒（最大5人・任意／families の子5枠へ・実装C） -->
+  <div class="reg-step" id="step-sensei-students">
+    <div class="step-title">お試しの園児・生徒</div>
+    <div class="step-sub">気になる園児をまず数人だけ登録できます🌸<br>（任意・スキップOK／お試し期間中は生徒は合わせて5人まで。本契約後にさらに追加できます）</div>
+    <div id="ss-list"></div>
+    <div id="ss-input-block">
+      <label class="form-label">姓</label>
+      <input class="form-input" id="ss-last"  type="text" placeholder="例：田中">
+      <label class="form-label">名</label>
+      <input class="form-input" id="ss-first" type="text" placeholder="例：はな">
+      <label class="form-label">生年月日（任意）</label>
+      <input class="form-input" id="ss-birth" type="text" placeholder="例：20200415">
+      <div class="hint">8桁の数字 または 2020/04/15 形式<br>（生年月日を入れると発達の見立てに使えます・空欄でも後から登録できます）</div>
+      <button class="btn-outline" style="margin-bottom:14px;font-size:14px;" onclick="addSenseiStudent()">➕ この園児を追加する</button>
+    </div>
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep('sensei')">戻る</button>
+      <button class="btn-next" id="btn-sensei-students-next" onclick="goStep('sensei-kosodate')">次へ</button>
+    </div>
+  </div>
+
+  <!-- Step(先生): あなた自身の子育て（任意・方式Y＝中央に子育てアカウントを作成） -->
+  <div class="reg-step" id="step-sensei-kosodate">
+    <div class="step-title">あなた自身の子育て（特典・任意）</div>
+    <div class="step-sub">先生ご自身の子育て・パートナー相談に「子育てNABItan」も無料でお使いいただけます🌸<br>（任意・スキップOK／あとで「👨‍👩‍👧 家族情報の変更」からも追加できます）</div>
+
+    <label class="form-label">あなたの役割（子育て）</label>
+    <div class="radio-group">
+      <div class="radio-btn selected" id="sk-role-mother" onclick="skSelectRole('母')">母</div>
+      <div class="radio-btn" id="sk-role-father" onclick="skSelectRole('父')">父</div>
+    </div>
+    <div class="hint">パートナーを登録すると、この役割の逆（母↔父）で登録されます🌿</div>
+
+    <label class="form-label" style="margin-top:14px;">パートナー</label>
+    <div class="radio-group">
+      <div class="radio-btn" id="sk-pt-yes" onclick="skSelectPartner(true)">いる</div>
+      <div class="radio-btn" id="sk-pt-no"  onclick="skSelectPartner(false)">いない</div>
+    </div>
+    <div id="sk-pt-form" style="display:none;">
+      <label class="form-label">パートナーの姓</label>
+      <input class="form-input" id="sk-pt-last"  type="text" placeholder="例：佐原">
+      <label class="form-label">パートナーの名</label>
+      <input class="form-input" id="sk-pt-first" type="text" placeholder="例：花子">
+      <label class="form-label">パートナーの生年月日（任意）</label>
+      <input class="form-input" id="sk-pt-birth" type="text" placeholder="例：19880601">
+    </div>
+
+    <label class="form-label" style="margin-top:14px;">お子さん（任意・最大5人）</label>
+    <div id="sk-child-list"></div>
+    <div id="sk-child-block">
+      <label class="form-label">姓</label>
+      <input class="form-input" id="sk-c-last"  type="text" placeholder="例：佐原">
+      <label class="form-label">名</label>
+      <input class="form-input" id="sk-c-first" type="text" placeholder="例：太郎">
+      <label class="form-label">生年月日（任意）</label>
+      <input class="form-input" id="sk-c-birth" type="text" placeholder="例：20180715">
+      <button class="btn-outline" style="margin-bottom:14px;font-size:14px;" onclick="skAddChild()">➕ このお子さんを追加する</button>
+    </div>
+    <div class="hint">パートナー・お子さんの生年月日を入れると、ご家族まとめてのバイオリズム相談ができます🌿<br>（すべて任意・空欄でもあとから追加できます）</div>
+
+    <div class="step-nav">
+      <button class="btn-back-step" onclick="goStep('sensei-students')">戻る</button>
+      <button class="btn-next" id="btn-sensei-reg" onclick="submitRegister()">内容を確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ④ チャット画面 -->
+<div id="screen-chat" class="screen" style="flex-direction:column;">
+  <div id="chat-area"></div>
+  <div id="input-area">
+    <textarea id="msg-input" placeholder="メッセージを入力…" rows="1"
+      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+    <button id="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<!-- ⑤ 登録完了画面 -->
+<div id="screen-done" class="screen">
+  <div class="icon">🌸</div>
+  <h2>登録が完了しました！</h2>
+  <p>チャットを始めましょう🌿<br>毎朝今日のメッセージが届きます🌸</p>
+  <button class="btn-primary" onclick="startChatFromDone()">チャットを始める</button>
+</div>
+
+<!-- ⑥ 登録前の確認画面（修正/登録） -->
+<div id="screen-confirm" class="screen" style="flex-direction:column;">
+  <h2 style="margin:8px 0 4px;">この内容で登録します</h2>
+  <p class="step-sub" style="margin-bottom:12px;">間違いがあれば「✏️ 修正する」で戻れます🌿</p>
+  <div id="confirm-body" style="width:100%;max-width:520px;text-align:left;"></div>
+  <div class="step-nav" style="width:100%;max-width:520px;">
+    <button class="btn-back-step" onclick="backToEditFromConfirm()">✏️ 修正する</button>
+    <button class="btn-next" id="btn-confirm-reg" onclick="doSubmitRegister()">✅ この内容で登録</button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// 設定（GAS_URLは実際のデプロイURLに変更してください）
+// ================================================================
+// ※ WORKER_URL（Claude直叩き）は v3.25 でチャットをGAS経由に一本化したため未使用。
+//   ペルソナ・九星・命式を効かせるためプロンプト生成はGAS側 buildPrompt に集約。
+var WORKER_URL = 'https://nabitan-api.nikkoriphoto63.workers.dev';
+var GAS_URL    = 'https://script.google.com/macros/s/AKfycbwzypaSFCgcpFfcdvnok9JJYgqBCn6NpDhZV9npVw5K8jISDQkPRmJKgOPktSV30e7WUA/exec';
+
+// ================================================================
+// 状態変数
+// ================================================================
+var lineUid     = '';
+var userInfo    = null;
+var regData     = {role:'', parent:{}, partner:null, children:[], familyIdInput:null, planType:'MAIN', serviceType:'子育て'};
+var children    = [];
+var trialStudents = [];   // 先生：登録時のお試し園児（生徒名簿Docへ・child5枠は使わない・実装C改）
+var chatHistory = [];
+var tokenUsed   = 0;
+var currentMode = 'morning';  // 現在選択中のメニュー
+var selectedStudentId = '';   // 実装E：menu3（保育・発達相談）で選択中の登録済み園児
+var selectedStudentName = '';
+var _m3Students = [];         // 実装E：menu3ピッカーの生徒一覧（5人ずつ表示のため保持）
+var _m3Offset = 0;            // すでに表示した人数（ページング）
+
+// メニュー定義
+var MENUS = {
+  morning: { label:'🌅 おはよう',           row:1, situation:'morning',
+             desc:'今日のあなたと家族のエネルギー、お子さんへの声かけのヒントをお届けします🌸' },
+  menu1:   { label:'⭐ 今日の運勢',         row:1, situation:'menu1',
+             desc:'今日の運気の流れを、自然の風景でやさしくお伝えします🌿' },
+  menu2:   { label:'💆 ストレスチェック',   row:1, situation:'menu2',
+             desc:'直感の3問で、今の心の状態を見える化。心の栄養剤も提案します🌸' },
+  menu3:   { label:'🌿 子育て相談',         row:1, situation:'menu3',
+             desc:'お子さんのことで気になることを相談できます。その子に合った関わり方のヒントも🌷' },
+  menu4:   { label:'🏠 パパ・ママのお部屋', row:1, situation:'menu4',
+             desc:'あなた自身やパートナーとの関係を、ほっとひと息つきながら話せる場所です🌿' },
+  menu5:   { label:'🆘 緊急避難',           row:2, situation:'menu5',
+             desc:'つらいとき、静かに休むための部屋です🌿' },
+  persona: { label:'🎭 キャラクター設定',   row:2, situation:null      },
+  share:   { label:'📢 友達紹介',           row:2, situation:null      },
+  family:  { label:'👨‍👩‍👧 家族情報の変更',   row:2, situation:null      },
+  billing: { label:'💳 ご契約状況',         row:2, situation:null      },
+  howto:   { label:'❓ 使い方',             row:2, situation:null      },
+};
+
+// 先生NABItan（保育士）用メニュー定義（serviceType='保育士' のとき使用・v3.36）
+//   chat menu の key は GAS webChatReply_ の allowed（welcome/menu1〜menu7）と一致させること。
+//   menu8（管理者）は保留のため出さない。家族情報の変更は先生には出さない。
+var SENSEI_MENUS = {
+  welcome: { label:'🌸 お迎え',            row:1, situation:'welcome' },
+  menu1:   { label:'⭐ 運勢・仕事運',      row:1, situation:'menu1',
+             desc:'今日の仕事運・対人運を★で。無理しがちな場面のヒントもお届けします🌿' },
+  menu2:   { label:'💆 ストレスチェック',  row:1, situation:'menu2',
+             desc:'直感の3問で、今の心の状態を見える化。心の栄養剤も提案します🌸' },
+  menu3:   { label:'🌷 保育・発達相談',    row:1, situation:'menu3',
+             desc:'気になる園児の様子を相談できます。お名前と生年月日があれば、その子に届く関わり方のヒントも🌷' },
+  menu4:   { label:'✉️ 保護者対応',        row:1, situation:'menu4',
+             desc:'難しい保護者対応の進め方の相談や、けが・トラブルの報告メール文面づくりを一緒に。作った文面は【📨 施設長に共有】ボタンで施設長へ共有できます🌿' },
+  menu5:   { label:'🌿 先生の個室',        row:1, situation:'menu5',
+             desc:'「先生」や「大人」を脱いで休む場所。誰の期待にも応えなくて大丈夫です🌿' },
+  menu6:   { label:'🚨 災害・安否',        row:1, situation:'menu6',
+             desc:'災害時の安否確認。まとめた報告は【📨 施設に報告】ボタンで施設へメール送信できます🌸' },
+  menu7:    { label:'🆘 緊急避難',          row:2, situation:'menu7',
+             desc:'つらいとき、静かに休むための部屋です🌿' },
+  students: { label:'👶 生徒管理',          row:2, situation:null      },
+  persona:  { label:'🎭 キャラクター設定',  row:2, situation:null      },
+  billing:  { label:'💳 ご契約状況',        row:2, situation:null      },
+  howto:    { label:'❓ 使い方',            row:2, situation:null      },
+};
+
+// 両メニュー開放（実装D）：保育士は 先生モード ⇄ 子育てモード を切替できる。
+//   'sensei'＝先生メニュー・先生プロ枠／'kosodate'＝子育てメニュー・子育て枠（特典・基本無料）。
+var senseiChatMode = 'sensei';
+// 方式Y（Step2）：先生が子育てモードで操作している時は &as=kosodate を付与し、
+//   GAS 側で中央の子育て行（本人＝先生＋パートナー＋子）を読み書きさせる。先生モード/非先生は空。
+function asParam() {
+  return (isSenseiUser() && senseiChatMode === 'kosodate') ? '&as=kosodate' : '';
+}
+function isSenseiUser() {   // アカウント種別が保育士か（不変）
+  return !!(userInfo && userInfo.serviceType === '保育士');
+}
+function isActingSensei() {  // いま先生モードで動作中か（保育士かつ子育てモードでない）
+  return isSenseiUser() && senseiChatMode !== 'kosodate';
+}
+// 現在のモードに対応するメニューセット
+function activeMenus() {
+  if (!isSenseiUser()) return MENUS;
+  return isActingSensei() ? SENSEI_MENUS : MENUS;
+}
+// 既定で開くタブ（先生モード＝お迎え／子育てモード・子育てユーザー＝おはよう）
+function defaultMenuKey() {
+  return isActingSensei() ? 'welcome' : 'morning';
+}
+// 先生モード ⇄ 子育てモード の切替
+function toggleSenseiMode() {
+  if (!isSenseiUser()) return;
+  senseiChatMode = (senseiChatMode === 'kosodate') ? 'sensei' : 'kosodate';
+  document.getElementById('header-title').textContent =
+    isActingSensei() ? '先生NABItan チャット' : '子育てNABItan チャット';
+  renderMenuTabs();
+  currentMode = defaultMenuKey();
+  selectMenuTab(currentMode);
+  addBubble('system', isActingSensei()
+    ? '🌸 先生モードに切り替えました（保育・教育のお仕事の相談）'
+    : '🍼 子育てモードに切り替えました（あなた自身の子育て・特典で基本無料）🌿\n' +
+      '上のメニューから選んでね🌸\n※お子さん・パートナーは「👨‍👩‍👧 家族情報の変更」から登録できます');
+}
+
+// メニュータブを serviceType に応じて動的生成する
+function renderMenuTabs() {
+  var menus = activeMenus();
+  var r1 = document.getElementById('menu-row1');
+  var r2 = document.getElementById('menu-row2');
+  if (!r1 || !r2) return;
+  r1.innerHTML = ''; r2.innerHTML = '';
+  Object.keys(menus).forEach(function(key) {
+    var m = menus[key];
+    var div = document.createElement('div');
+    var isRow1 = (m.row === 1);
+    div.className = isRow1 ? 'menu-tab' : ('menu-tab2' + (m.situation === null ? ' setting' : ''));
+    div.id = 'tab-' + key;
+    div.textContent = m.label;
+    div.onclick = function() { selectMenu(key); };
+    (isRow1 ? r1 : r2).appendChild(div);
+  });
+  // 両メニュー開放（実装D）：保育士はモード切替タブを下段に追加
+  if (isSenseiUser()) {
+    var t = document.createElement('div');
+    t.className = 'menu-tab2 setting';
+    t.id = 'tab-switchmode';
+    t.textContent = isActingSensei() ? '🍼 子育てモードへ' : '🌸 先生モードへ';
+    t.onclick = function() { toggleSenseiMode(); };
+    r2.appendChild(t);
+  }
+}
+
+// キャラクター（ペルソナ）一覧。key は families の persona 列／GAS PERSONA_KEYS と一致。
+var PERSONAS = [
+  { key:'nikkori',   name:'なびタン',       desc:'気さくで対等な旧知の友' },
+  { key:'sho',       name:'翔',             desc:'爽やかで前向きな男子' },
+  { key:'dokuzetsu', name:'愛の毒舌ママ',   desc:'本質を突くけど芯はあたたかい' },
+  { key:'okan',      name:'浪速のおかん',   desc:'関西弁で人情味たっぷり' },
+  { key:'satonii',   name:'さとにい',       desc:'短い言葉に深みのある兄' },
+];
+
+// ================================================================
+// 初期化
+// ================================================================
+window.addEventListener('DOMContentLoaded', function() {
+  var params = new URLSearchParams(window.location.search);
+  lineUid = params.get('uid') || '';
+  if (!lineUid) { showScreen('error'); return; }
+
+  fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid))
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.ok && data.registered) {
+        userInfo = data;
+        openChat(false);
+      } else {
+        applySenseiWelcomeIfNeeded_();
+        showScreen('welcome');
+      }
+    })
+    .catch(function() { applySenseiWelcomeIfNeeded_(); showScreen('welcome'); });
+});
+
+// ================================================================
+// 画面切り替え
+// ================================================================
+function showScreen(name) {
+  var map = {
+    error:'screen-error', welcome:'screen-welcome',
+    register:'screen-register', chat:'screen-chat', done:'screen-done',
+    confirm:'screen-confirm'
+  };
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  var t = document.getElementById(map[name]);
+  if (t) t.classList.add('active');
+  // メニューバーはチャット画面のみ表示
+  document.getElementById('menu-bar').style.display = (name === 'chat') ? 'block' : 'none';
+}
+
+// ================================================================
+// チャット画面を開く
+// ================================================================
+function openChat(isNew) {
+  senseiChatMode = 'sensei';         // 開くたびに先生モードから開始（両メニュー開放・実装D）
+  document.getElementById('header-title').textContent =
+    isActingSensei() ? '先生NABItan チャット' : 'NABItan チャット';
+  showScreen('chat');
+  renderMenuTabs();                 // serviceType/モードに応じてタブを生成
+  currentMode = defaultMenuKey();
+  selectMenuTab(currentMode);
+
+  var name = (userInfo && userInfo.firstName) || regData.parent.firstName || '';
+  if (isNew) {
+    addBubble('ai',
+      '登録ありがとうございます🌸 ' + name + 'さん🌿\n\n' +
+      '上のメニューから話したいテーマを選んでね🌷\n' +
+      '何でも気軽に話しかけてください🌿'
+    );
+  } else {
+    addBubble('ai',
+      'おかえりなさい🌸 ' + name + 'さん🌿\n\n' +
+      '上のメニューから話したいテーマを選んでね🌷'
+    );
+  }
+  addBubble('system', '▲ 上のメニューをタップして始めましょう');
+
+  // クロス告知（方式Y Step5）：先生の子育て特典は【お試し登録直後の1回だけ】案内する。
+  //   以前は openChat のたび（毎回）に出していた（実装D 案②）が、毎回はうるさいため撤去し
+  //   登録直後（isNew）に集約。日常の導線は「先生の使い方（howto）」の子育てモード案内で担保。
+  if (isNew && isSenseiUser()) {
+    addBubble('system',
+      '🍼 先生の特典：子育てNABItanも基本料金無料で使えます🌸\n' +
+      '下段の「🍼 子育てモードへ」で切り替えられます。\n' +
+      'お子さんがいなくても、パートナーとの関係や自分の心の相談に使えますよ🌿');
+  }
+
+  // 方式Y Step6b：先生の課金導線バナー（お試し終了接近→本契約¥2,500／本契約終了接近→メイン・プロ2択）。
+  renderSenseiBilling_();
+}
+
+// 登録完了画面「チャットを始める」：backend の getUserInfo で serviceType を確定してから開く。
+//   登録直後のメニュー誤判定（先生登録なのに子育てメニュー）を防ぐため、リロードと同じ権威データを使う。
+//   登録は同期処理なので、この時点で backend は保育士/子育てを正しく返す。
+async function startChatFromDone() {
+  try {
+    var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+    var d = await r.json();
+    if (d && d.ok) userInfo = d;   // 取得できれば権威データで上書き（失敗時は登録時の補完 userInfo のまま）
+  } catch(e) {}
+  openChat(true);
+}
+
+// ================================================================
+// メニュー選択
+// ================================================================
+function selectMenu(key) {
+  currentMode = key;
+  selectMenuTab(key);
+
+  // 実装E：先生の「保育・発達相談」は、まず登録済み園児を選ぶ（生年月日の再入力を防ぐ）。
+  if (key === 'menu3' && isActingSensei()) {
+    openMenu3StudentPicker();
+    return;
+  }
+  // 他メニューへ移ったら選択中の生徒はクリア
+  if (key !== 'menu3') { selectedStudentId = ''; selectedStudentName = ''; }
+
+  if (key === 'share') {
+    showShareInfo();
+    return;
+  }
+  if (key === 'family') {
+    openFamilyEditor();
+    return;
+  }
+  if (key === 'billing') {
+    openBillingPanel();
+    return;
+  }
+  if (key === 'persona') {
+    showPersonaChooser();
+    return;
+  }
+  if (key === 'students') {
+    openStudentPanel();
+    return;
+  }
+  if (key === 'howto') {
+    addBubble('system', isActingSensei()
+      ? ('【先生NABItanの使い方】🌸\n\n' +
+        '上のメニューをタップして選んでください🌿\n\n' +
+        '🌸 お迎え → 今日のご挨拶と気配\n' +
+        '⭐ 運勢・仕事運 → 今日の巡りと対人運\n' +
+        '💆 ストレスチェック → 今の心の状態\n' +
+        '🌷 保育・発達相談 → 園児の育ちの相談\n' +
+        '✉️ 保護者対応 → 作戦会議・代筆\n' +
+        '🌿 先生の個室 → 役割を脱いで休む場所\n' +
+        '🚨 災害・安否 → 非常時の安否確認\n' +
+        '🆘 緊急避難 → つらいとき\n\n' +
+        '🍼 子育てモードへ → 個人の子育て・パートナー相談はこちら（特典・基本無料）\n' +
+        '🎭 キャラクター設定 → 話し相手のキャラを変更\n\n' +
+        '番号（1〜7）を送っても同じメニューに移れます🌸')
+      : ('【NABItanの使い方】🌸\n\n' +
+        '上のメニューをタップして話題を選んでください🌿\n\n' +
+        '🌅 おはよう → 今日の朝メッセージ\n' +
+        '⭐ 今日の運勢 → バイオリズム解説\n' +
+        '💆 ストレスチェック → 今の状態確認\n' +
+        '🌿 子育て相談 → 子育ての悩み相談\n' +
+        '🏠 パパ・ママのお部屋 → ふたりの関係\n' +
+        '🆘 緊急避難 → つらいとき\n\n' +
+        '🎭 キャラクター設定 → 話し相手のキャラを変更\n' +
+        '📢 友達紹介 → 紹介コード・QRの表示\n' +
+        '👨‍👩‍👧 家族情報の変更 → お子さん・パートナーの追加や修正\n\n' +
+        '番号（1〜5）を送っても同じメニューに移れます🌸'));
+    return;
+  }
+
+  // チャット履歴をリセットしてメニュー開始
+  chatHistory = [];
+  var _m = activeMenus()[key];
+  // 先生メニューは「できること・使い方」を先に表示（固定テキスト＝API消費なし）
+  if (_m && _m.desc) addBubble('system', '【' + _m.label + '】\n' + _m.desc);
+  else addBubble('system', _m ? _m.label + ' を開きます…' : '');
+  startMenuChat(key);
+}
+
+// 実装E：menu3を開いたとき、登録済み生徒のピッカーを表示。選ぶと生年月日を再入力せず相談できる。
+//   40人登録でも見やすいよう【5人ずつ】表示し、「▼ 次の5人を表示」で追加する（ページング）。
+async function openMenu3StudentPicker() {
+  selectedStudentId = ''; selectedStudentName = '';
+  chatHistory = [];
+  _m3Students = []; _m3Offset = 0;
+  var _m = activeMenus()['menu3'];
+  if (_m && _m.desc) addBubble('system', '【' + _m.label + '】\n' + _m.desc);
+  addBubble('system', 'どの園児のご相談ですか？🌷\n登録済みの生徒を選ぶと、生年月日をもう一度聞かずに相談できます🌸');
+
+  try {
+    var r = await fetch(GAS_URL + '?action=studentList&uid=' + encodeURIComponent(lineUid));
+    var d = await r.json();
+    if (d && d.ok) _m3Students = d.students || [];
+  } catch(e) {}
+
+  if (!_m3Students.length) {
+    addBubble('system', '（まだ生徒が登録されていません。「👶 生徒管理」から登録できます🌸）');
+  }
+  renderMenu3StudentPage();
+}
+
+// 生徒ボタンを5人ずつ描画。末尾に「次の5人」（残があるとき）＋「新規の相談」ボタンを再構築。
+function menu3StudentBtnStyle_(b) {
+  b.className = 'btn-outline';
+  b.style.cssText = 'width:auto;padding:9px 14px;font-size:14px;text-align:left;';
+}
+function renderMenu3StudentPage() {
+  var area = document.getElementById('chat-area');
+  var ctrl = document.getElementById('m3-controls');   // 前回の「次の5人／新規」ボタン群を外す
+  if (ctrl) ctrl.remove();
+
+  var slice = _m3Students.slice(_m3Offset, _m3Offset + 5);
+  if (slice.length) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:2px 0 4px;';
+    slice.forEach(function(s){
+      var b = document.createElement('button');
+      menu3StudentBtnStyle_(b);
+      var nm = ((s.lastName||'') + ' ' + (s.firstName||'')).trim();
+      b.textContent = '👶 ' + nm + (s.birthdate ? '（' + s.birthdate + '）' : '（生年月日未登録）');
+      b.onclick = function(){ pickMenu3Student(s.studentId, nm); };
+      wrap.appendChild(b);
+    });
+    area.appendChild(wrap);
+    _m3Offset += slice.length;
+  }
+
+  var ctl = document.createElement('div');
+  ctl.id = 'm3-controls';
+  ctl.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;';
+  var remain = _m3Students.length - _m3Offset;
+  if (remain > 0) {
+    var more = document.createElement('button');
+    menu3StudentBtnStyle_(more);
+    more.style.textAlign = 'center';
+    more.textContent = '▼ 次の5人を表示（残り' + remain + '人）';
+    more.onclick = renderMenu3StudentPage;
+    ctl.appendChild(more);
+  }
+  var none = document.createElement('button');
+  menu3StudentBtnStyle_(none);
+  none.textContent = '✏️ 名簿にない子／新規の相談';
+  none.onclick = function(){ pickMenu3Student('', ''); };
+  ctl.appendChild(none);
+  area.appendChild(ctl);
+  area.scrollTop = area.scrollHeight;
+}
+
+function pickMenu3Student(id, name) {
+  selectedStudentId = id || '';
+  selectedStudentName = name || '';
+  if (id) addBubble('system', '🌸 ' + name + ' さんのご相談を始めます');
+  startMenuChat('menu3');
+}
+
+function selectMenuTab(key) {
+  // 全タブのactiveを外す
+  document.querySelectorAll('.menu-tab, .menu-tab2').forEach(function(t){ t.classList.remove('active'); });
+  var tab = document.getElementById('tab-' + key);
+  if (tab) tab.classList.add('active');
+}
+
+// ================================================================
+// キャラクター設定（ペルソナ切替）
+// ================================================================
+function showPersonaChooser() {
+  var cur = (userInfo && userInfo.persona) || 'nikkori';
+  var curName = 'なびタン';
+  PERSONAS.forEach(function(p){ if (p.key === cur) curName = p.name; });
+  addBubble('system',
+    '🎭 キャラクターの設定\n\n' +
+    '今のキャラクター：' + curName + '\n\n' +
+    '話し相手のキャラクターを選べます🌸\n（口調や寄り添い方が変わります）');
+
+  var area = document.getElementById('chat-area');
+  var box  = document.createElement('div');
+  box.className = 'persona-choices';
+  PERSONAS.forEach(function(p){
+    var btn = document.createElement('button');
+    btn.className = 'persona-choice' + (p.key === cur ? ' current' : '');
+    btn.innerHTML = '<b>' + p.name + '</b><span>' + p.desc + '</span>';
+    btn.onclick = function(){ setPersonaWeb(p.key, p.name); };
+    box.appendChild(btn);
+  });
+  area.appendChild(box);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function setPersonaWeb(key, name) {
+  try {
+    var url = GAS_URL + '?action=setPersona' +
+              '&uid='     + encodeURIComponent(lineUid) +
+              '&persona=' + encodeURIComponent(key) + asParam();
+    var res  = await fetch(url);
+    var data = await res.json();
+    if (data && data.ok) {
+      if (userInfo) userInfo.persona = key;
+      // 選択UIの強調を付け替え
+      document.querySelectorAll('.persona-choice').forEach(function(b){
+        b.classList.toggle('current', b.querySelector('b') && b.querySelector('b').textContent === name);
+      });
+      addBubble('system', '「' + name + '」に設定しました🌸\nこれからこのキャラクターでお話しします🌿');
+    } else {
+      addBubble('system', 'キャラクター設定に失敗しました🌷 もう一度お試しください🌿');
+    }
+  } catch(e) {
+    addBubble('system', '通信エラーで設定できませんでした🌷');
+  }
+}
+
+// ================================================================
+// 📢 友達紹介（紹介コード・QRをWeb表示）
+// ================================================================
+async function showShareInfo() {
+  // 登録直後は userInfo が未取得のため、紹介コード/QRが空にならないよう取得を保証
+  if (!userInfo || !userInfo.qrUrl) {
+    try {
+      var r0 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+      var d0 = await r0.json();
+      if (d0 && d0.ok) userInfo = d0;
+    } catch(e) {}
+  }
+  var code = (userInfo && userInfo.referralCode) || '';
+  var lid  = (userInfo && userInfo.lineId) || '';
+  var qr   = (userInfo && userInfo.qrUrl) || '';
+  var area = document.getElementById('chat-area');
+  var card = document.createElement('div');
+  card.className = 'info-card';
+
+  var html = '<div class="card-title">📢 友達紹介</div>';
+  if (qr) html += '<img class="share-qr" src="' + qr + '" alt="友達追加QR">';
+  html += '<div class="card-text">このQRコードからお友達がNABItanを友だち追加できます🌸</div>';
+  if (code && code.indexOf('NAB-') === 0) {
+    html += '<div class="share-code"><span>あなたの紹介コード</span><b id="ref-code">' + code + '</b></div>'
+          + '<div class="card-text">お友達が登録時にこのコードを入力すると、おふたりとも無料期間が7日間延長されます🌿</div>';
+  } else if (lid) {
+    html += '<div class="card-text">私のLINE ID：<b>' + lid + '</b>\n登録時に入力してもらってください🌿</div>';
+  }
+  card.innerHTML = html;
+  area.appendChild(card);
+
+  if (code && code.indexOf('NAB-') === 0) {
+    var btn = document.createElement('button');
+    btn.className = 'fam-cancel';
+    btn.style.width = '100%';
+    btn.style.marginTop = '4px';
+    btn.textContent = '📋 紹介コードをコピー';
+    btn.onclick = function() {
+      var ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code); ok = true;
+        }
+      } catch(e) { ok = false; }
+      btn.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください：' + code;
+    };
+    card.appendChild(btn);
+  }
+  area.scrollTop = area.scrollHeight;
+}
+
+// ================================================================
+// 👨‍👩‍👧 家族情報の変更（一覧→追加/修正/削除のカード型エディタ）
+// ================================================================
+// GAS の FE_* ステートマシンと同じ実処理（addChildToFamily 等）を
+// action=familyEdit 経由で呼ぶ。氏名・生年月日の修正は内部でコード再発行が
+// 走るため数秒かかる（保存ボタンをローディング表示にして待つ）。
+var FAM = { data: null, panel: null };
+
+async function openFamilyEditor() {
+  famRemovePanel();
+  var area = document.getElementById('chat-area');
+  FAM.panel = document.createElement('div');
+  FAM.panel.className = 'info-card';
+  FAM.panel.innerHTML = '<div class="card-text">家族情報を読み込んでいます…🌿</div>';
+  area.appendChild(FAM.panel);
+  area.scrollTop = area.scrollHeight;
+
+  try {
+    var url  = GAS_URL + '?action=getFamily&uid=' + encodeURIComponent(lineUid) + asParam();
+    var res  = await fetch(url);
+    var data = await res.json();
+    if (!data || !data.ok) {
+      FAM.panel.innerHTML = '<div class="card-text">家族情報を読み込めませんでした🌷\n（' + ((data && data.error) || '') + '）</div>';
+      return;
+    }
+    FAM.data = data;
+    famRenderMenu();
+  } catch(e) {
+    FAM.panel.innerHTML = '<div class="card-text">通信エラーで読み込めませんでした🌷</div>';
+  }
+}
+
+function famRemovePanel() {
+  if (FAM.panel && FAM.panel.parentNode) FAM.panel.parentNode.removeChild(FAM.panel);
+  FAM.panel = null;
+}
+
+function famScroll() {
+  var area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+}
+
+// 家族一覧 + 操作メニュー
+function famRenderMenu() {
+  var d = FAM.data;
+  var html = '<div class="card-title">👨‍👩‍👧 家族情報</div>';
+  html += famMemberRow(d.parent.label, d.parent.lastName + d.parent.firstName, d.parent.birthdate);
+  (d.children || []).forEach(function(c) {
+    html += famMemberRow(c.label, c.lastName + c.firstName, c.birthdate);
+  });
+  if (d.partner) html += famMemberRow(d.partner.label, d.partner.name, '');
+  html += '<div style="height:6px"></div>';
+
+  var canChild   = (d.children || []).length < (d.childMax || 5);
+  var canPartner = !d.partner;
+  if (canChild)   html += '<button class="fam-btn" onclick="famAddForm(\'addChild\')">➕ お子さんを追加</button>';
+  if (canPartner) html += '<button class="fam-btn" onclick="famAddForm(\'addPartner\')">➕ パートナーを追加</button>';
+  html += '<button class="fam-btn" onclick="famEditSelect()">✏️ お名前・生年月日を修正</button>';
+  html += '<button class="fam-btn" onclick="famDelSelect()">🗑️ ご家族を削除</button>';
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRemovePanel()">閉じる</button></div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+function famMemberRow(label, name, birth) {
+  return '<div class="fam-member"><span><b>' + label + '</b>　' + (name || '（未設定）') + '</span>'
+       + (birth ? '<small>' + birth + '</small>' : '') + '</div>';
+}
+
+function famEsc(s) { return String(s == null ? '' : s).replace(/'/g, '\\\'').replace(/"/g, '&quot;'); }
+
+// 追加フォーム（addChild / addPartner）
+function famAddForm(op) {
+  var who = (op === 'addChild') ? 'お子さん' : 'パートナー';
+  var html = '<div class="card-title">➕ ' + who + 'を追加</div>'
+    + '<label class="form-label">姓</label>'
+    + '<input class="form-input" id="fam-last" type="text" placeholder="例：佐原">'
+    + '<label class="form-label">名</label>'
+    + '<input class="form-input" id="fam-first" type="text" placeholder="例：花子">'
+    + '<label class="form-label">生年月日（不明なら空欄）</label>'
+    + '<input class="form-input" id="fam-birth" type="text" inputmode="numeric" placeholder="例：20180715">'
+    + '<div class="fam-note">登録時に個人コードを発行します（少し時間がかかります）🌿</div>'
+    + '<div class="fam-actions">'
+    + '<button class="fam-cancel" onclick="famRenderMenu()">もどる</button>'
+    + '<button class="fam-save" id="fam-save" onclick="famSubmitAdd(\'' + op + '\')">追加する</button>'
+    + '</div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+async function famSubmitAdd(op) {
+  var last  = (document.getElementById('fam-last').value  || '').trim();
+  var first = (document.getElementById('fam-first').value || '').trim();
+  var birth = (document.getElementById('fam-birth').value || '').trim();
+  if (!last || !first) { alert('姓と名を入力してください🌷'); return; }
+  await famPost(op, { lastName: last, firstName: first, birthdate: birth },
+                (op === 'addChild' ? 'お子さん' : 'パートナー') + 'を追加しました🌸');
+}
+
+// 修正対象の選択（本人＋子のみ。パートナーは未対応のため出さない）
+function famEditSelect() {
+  var d = FAM.data;
+  var html = '<div class="card-title">✏️ 修正するご家族</div>';
+  html += '<button class="fam-btn" onclick="famEditField(\'' + d.parent.target + '\',\'' + famEsc(d.parent.lastName + d.parent.firstName) + '\')">' + d.parent.label + '（' + (d.parent.lastName + d.parent.firstName) + '）</button>';
+  (d.children || []).forEach(function(c) {
+    html += '<button class="fam-btn" onclick="famEditField(\'' + c.target + '\',\'' + famEsc(c.lastName + c.firstName) + '\')">' + c.label + '（' + (c.lastName + c.firstName) + '）</button>';
+  });
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+function famEditField(target, name) {
+  var html = '<div class="card-title">✏️ ' + name + 'さんの修正</div>'
+    + '<button class="fam-btn" onclick="famEditNameForm(\'' + target + '\')">お名前を修正</button>'
+    + '<button class="fam-btn" onclick="famEditBirthForm(\'' + target + '\')">生年月日を修正</button>'
+    + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famEditSelect()">もどる</button></div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+function famEditNameForm(target) {
+  var html = '<div class="card-title">✏️ お名前を修正</div>'
+    + '<label class="form-label">姓</label>'
+    + '<input class="form-input" id="fam-last" type="text" placeholder="例：佐原">'
+    + '<label class="form-label">名</label>'
+    + '<input class="form-input" id="fam-first" type="text" placeholder="例：花子">'
+    + '<div class="fam-note">お名前の変更で個人コードを再発行します（少し時間がかかります）🌿</div>'
+    + '<div class="fam-actions">'
+    + '<button class="fam-cancel" onclick="famEditSelect()">もどる</button>'
+    + '<button class="fam-save" id="fam-save" onclick="famSubmitEditName(\'' + target + '\')">更新する</button>'
+    + '</div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+async function famSubmitEditName(target) {
+  var last  = (document.getElementById('fam-last').value  || '').trim();
+  var first = (document.getElementById('fam-first').value || '').trim();
+  if (!last || !first) { alert('姓と名を入力してください🌷'); return; }
+  await famPost('editName', { target: target, lastName: last, firstName: first }, 'お名前を更新しました🌸');
+}
+
+function famEditBirthForm(target) {
+  var html = '<div class="card-title">✏️ 生年月日を修正</div>'
+    + '<label class="form-label">生年月日</label>'
+    + '<input class="form-input" id="fam-birth" type="text" inputmode="numeric" placeholder="例：20180715">'
+    + '<div class="fam-note">生年月日の変更で個人コードを再発行します（少し時間がかかります）🌿</div>'
+    + '<div class="fam-actions">'
+    + '<button class="fam-cancel" onclick="famEditSelect()">もどる</button>'
+    + '<button class="fam-save" id="fam-save" onclick="famSubmitEditBirth(\'' + target + '\')">更新する</button>'
+    + '</div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+async function famSubmitEditBirth(target) {
+  var birth = (document.getElementById('fam-birth').value || '').trim();
+  if (!birth) { alert('生年月日を入力してください🌷'); return; }
+  await famPost('editBirth', { target: target, birthdate: birth }, '生年月日を更新しました🌸');
+}
+
+// 削除対象の選択（パートナー＋子。本人は削除不可）
+function famDelSelect() {
+  var d = FAM.data;
+  var html = '<div class="card-title">🗑️ 削除するご家族</div>';
+  var any = false;
+  (d.children || []).forEach(function(c) {
+    any = true;
+    html += '<button class="fam-btn" onclick="famConfirmDel(\'' + c.target + '\',\'' + famEsc(c.lastName + c.firstName) + '\')">' + c.label + '（' + (c.lastName + c.firstName) + '）</button>';
+  });
+  if (d.partner) {
+    any = true;
+    html += '<button class="fam-btn" onclick="famConfirmDel(\'' + d.partner.target + '\',\'' + famEsc(d.partner.name) + '\')">' + d.partner.label + '（' + d.partner.name + '）</button>';
+  }
+  if (!any) html += '<div class="card-text">削除できるご家族がいません🌿</div>';
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+function famConfirmDel(target, name) {
+  var html = '<div class="card-title">🗑️ 削除の確認</div>'
+    + '<div class="card-text"><b>' + name + '</b> さんの情報を削除します。\nこの操作は取り消せません。よろしいですか？🌷</div>'
+    + '<div class="fam-actions">'
+    + '<button class="fam-cancel" onclick="famDelSelect()">やめる</button>'
+    + '<button class="fam-save" id="fam-save" style="background:#e07070" onclick="famDoDelete(\'' + target + '\')">削除する</button>'
+    + '</div>';
+  FAM.panel.innerHTML = html;
+  famScroll();
+}
+
+async function famDoDelete(target) {
+  await famPost('delete', { target: target }, '削除しました🌿');
+}
+
+// 共通：familyEdit を呼び、成功したら一覧を再取得して再描画
+async function famPost(op, payload, successMsg) {
+  var btn = document.getElementById('fam-save');
+  if (btn) { btn.disabled = true; btn.textContent = '処理中…'; }
+  try {
+    var url = GAS_URL + '?action=familyEdit'
+      + '&uid='     + encodeURIComponent(lineUid)
+      + '&op='      + encodeURIComponent(op)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload)) + asParam();
+    var res  = await fetch(url);
+    var data = await res.json();
+    if (data && data.ok) {
+      addBubble('system', successMsg);
+      await openFamilyEditor();   // 最新の家族情報で一覧を作り直す
+    } else {
+      alert('できませんでした🌷\n（' + ((data && data.error) || '') + '）');
+      if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+    }
+  } catch(e) {
+    alert('通信エラーです🌷\n（' + (e && e.message ? e.message : e) + '）');
+    if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+  }
+}
+
+// ================================================================
+// 生徒（園児）管理パネル（先生NABItan・保育士のみ）
+// ================================================================
+var STUDENT = { panel:null, data:null };
+
+async function openStudentPanel() {
+  studentRemovePanel();
+  var area = document.getElementById('chat-area');
+  STUDENT.panel = document.createElement('div');
+  STUDENT.panel.className = 'info-card';
+  STUDENT.panel.innerHTML = '<div class="card-text">生徒情報を読み込んでいます…🌿</div>';
+  area.appendChild(STUDENT.panel);
+  area.scrollTop = area.scrollHeight;
+  await studentRefresh();
+}
+
+function studentRemovePanel() {
+  if (STUDENT.panel && STUDENT.panel.parentNode) STUDENT.panel.parentNode.removeChild(STUDENT.panel);
+  STUDENT.panel = null;
+}
+
+function studentEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function studentErr(data) {
+  var e = (data && data.error) || '不明';
+  if (e === 'limit')        return '登録できる人数の上限に達しています🌷' + ((data && data.limit) ? ('（上限' + data.limit + '人）') : '');
+  if (e === 'not_sensei')   return '先生アカウントのみ利用できます';
+  if (e === 'name_required')return 'お名前が必要です';
+  if (e === 'open_failed')  return 'シートを開けませんでした（共有設定を確認）';
+  return e;
+}
+
+async function studentRefresh() {
+  try {
+    var res  = await fetch(GAS_URL + '?action=studentList&uid=' + encodeURIComponent(lineUid));
+    var data = await res.json();
+    if (!data || !data.ok) {
+      STUDENT.panel.innerHTML = '<div class="card-text">生徒情報を読み込めませんでした🌷\n（' + studentErr(data) + '）</div>'
+        + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="studentRemovePanel()">閉じる</button></div>';
+      return;
+    }
+    STUDENT.data = data;
+    renderStudentPanel();
+  } catch(e) {
+    STUDENT.panel.innerHTML = '<div class="card-text">通信エラーで読み込めませんでした🌷</div>';
+  }
+}
+
+function renderStudentPanel() {
+  var d = STUDENT.data, list = d.students || [];
+  var html = '<div class="card-title">👶 生徒管理（' + list.length + '／' + (d.max || 5) + '人）</div>';
+
+  if (!list.length) {
+    html += '<div class="card-text">まだ生徒が登録されていません🌿</div>';
+  } else {
+    list.forEach(function(s) {
+      var st = s.codeStatus === 'COMPLETE' ? '' : (s.codeStatus === 'PENDING' ? '（未発行）' : '（' + s.codeStatus + '）');
+      html += '<div class="fam-member"><span><b>' + studentEsc(s.lastName + ' ' + s.firstName) + '</b>'
+            + (s.birthdate ? '　<small>' + studentEsc(s.birthdate) + '</small>' : '')
+            + (st ? ' <small>' + st + '</small>' : '') + '</span>'
+            + '<button style="background:none;border:none;color:#c66;font-size:16px;cursor:pointer" '
+            + 'onclick="studentDeleteOne(\'' + studentEsc(s.studentId) + '\',\'' + studentEsc(s.lastName + s.firstName) + '\')">✕</button></div>';
+    });
+  }
+
+  html += '<div style="height:10px"></div>';
+  html += '<div class="card-title" style="font-size:15px">✍️ 1人ずつ追加</div>';
+  html += '<input class="form-input" id="stu-last"  type="text" placeholder="姓（例：山田）">';
+  html += '<input class="form-input" id="stu-first" type="text" placeholder="名（例：はな）">';
+  html += '<input class="form-input" id="stu-birth" type="text" inputmode="numeric" placeholder="生年月日（例：20180715・任意）">';
+  html += '<button class="fam-save" style="width:100%" onclick="studentAddInline()">➕ この生徒を追加</button>';
+
+  html += '<div style="height:12px"></div>';
+  html += '<div class="card-title" style="font-size:15px">📋 一括で登録（多人数）</div>';
+  html += '<div class="card-text" style="font-size:13px">①テンプレを複製 → ②生徒一覧を入力 → ③共有を「閲覧（リンクを知っている全員）」に → ④URLを貼って取り込み🌿</div>';
+  html += '<a class="fam-btn" style="display:block;text-align:center;text-decoration:none" href="' + studentEsc(d.templateUrl || '#') + '" target="_blank" rel="noopener">📄 テンプレシートを複製する</a>';
+  html += '<input class="form-input" id="stu-url" type="text" placeholder="共有したスプレッドシートのURLを貼り付け">';
+  html += '<button class="fam-save" style="width:100%" onclick="studentImportRun()">📥 一覧を取り込む</button>';
+  html += '<div id="stu-import-result" class="card-text" style="font-size:13px"></div>';
+
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="studentRemovePanel()">閉じる</button></div>';
+  STUDENT.panel.innerHTML = html;
+  var area = document.getElementById('chat-area'); area.scrollTop = area.scrollHeight;
+}
+
+async function studentAddInline() {
+  var last  = (document.getElementById('stu-last').value  || '').trim();
+  var first = (document.getElementById('stu-first').value || '').trim();
+  var birth = (document.getElementById('stu-birth').value || '').trim();
+  if (!last || !first) { alert('姓と名を入力してください🌷'); return; }
+  var payload = JSON.stringify({ lastName:last, firstName:first, birthdate:birth });
+  try {
+    var res  = await fetch(GAS_URL + '?action=studentAdd&uid=' + encodeURIComponent(lineUid) + '&payload=' + encodeURIComponent(payload));
+    var data = await res.json();
+    if (data && data.ok) { await studentRefresh(); }
+    else { alert('追加できませんでした🌷\n(' + studentErr(data) + ')'); }
+  } catch(e) { alert('通信エラーです🌷'); }
+}
+
+async function studentImportRun() {
+  var url = (document.getElementById('stu-url').value || '').trim();
+  if (!url) { alert('スプレッドシートのURLを貼り付けてください🌷'); return; }
+  var box = document.getElementById('stu-import-result');
+  box.textContent = '取り込み中…🌿';
+  try {
+    var res  = await fetch(GAS_URL + '?action=studentImport&uid=' + encodeURIComponent(lineUid) + '&url=' + encodeURIComponent(url));
+    var data = await res.json();
+    if (data && data.ok) {
+      var msg = data.added + '人を登録しました🌸' + (data.skipped ? '（' + data.skipped + '人はスキップ）' : '');
+      if (data.errors && data.errors.length) msg += '\n' + data.errors.join('\n');
+      await studentRefresh();
+      var b2 = document.getElementById('stu-import-result');
+      if (b2) b2.textContent = msg;
+    } else {
+      box.textContent = ((data && data.error) === 'open_failed')
+        ? 'シートを開けませんでした🌷 共有設定を「閲覧（リンクを知っている全員）」にして、URLを確認してください。'
+        : '取り込めませんでした🌷（' + studentErr(data) + '）';
+    }
+  } catch(e) { box.textContent = '通信エラーです🌷'; }
+}
+
+async function studentDeleteOne(sid, name) {
+  if (!confirm(name + ' さんを削除しますか？')) return;
+  try {
+    var res  = await fetch(GAS_URL + '?action=studentDelete&uid=' + encodeURIComponent(lineUid) + '&studentId=' + encodeURIComponent(sid));
+    var data = await res.json();
+    if (data && data.ok) await studentRefresh();
+    else alert('削除できませんでした🌷');
+  } catch(e) { alert('通信エラーです🌷'); }
+}
+
+// ================================================================
+// 施設（園長）へメール共有（先生NABItan Phase4）
+//   kind='safety'：menu6 災害・安否報告／kind='share'：menu4 保護者対応の文面を施設長へ共有
+//   いずれも AI生成テキストを本文に、施設（園長）の連絡先メール宛の mailto を開く。
+// ================================================================
+function buildFacilityMailto_(text, kind) {
+  var email = (userInfo && userInfo.emergencyContact) || '';
+  var who   = (userInfo && userInfo.firstName) || '';
+  var place = (userInfo && userInfo.workplace) || '';
+  var label = (kind === 'share') ? '【保護者対応の共有】' : '【安否報告】';
+  var subject = label + who + '先生' + (place ? '（' + place + '）' : '');
+  return 'mailto:' + encodeURIComponent(email)
+       + '?subject=' + encodeURIComponent(subject)
+       + '&body='    + encodeURIComponent(text || '');
+}
+
+function shareToFacility(text, kind) {
+  if (!(userInfo && userInfo.emergencyContact)) {
+    addBubble('system', '施設（園長）の連絡先メールが未登録です🌷\nメールアプリで宛先を入力して送ってくださいね🌿');
+  }
+  window.location.href = buildFacilityMailto_(text, kind);
+}
+
+// AI応答の下に「📋 コピー」＋「📨 共有」ボタンを出す（menu6=安否報告 / menu4=施設長へ共有）
+//   文面がコピーしづらいと離脱要因になるため、コピー導線を最優先で用意する（PC/iPadでも有効）。
+function appendFacilityButton(text, kind) {
+  var area = document.getElementById('chat-area');
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:2px 0 12px';
+
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'btn-outline';
+  copyBtn.style.cssText = 'width:auto;padding:10px 18px;font-size:14px';
+  copyBtn.textContent = '📋 文面をコピー';
+  copyBtn.onclick = function(){ copyTextToClipboard_(text, copyBtn); };
+
+  var btn = document.createElement('button');
+  btn.className = 'btn-primary';
+  btn.style.cssText = 'width:auto;padding:10px 18px;font-size:14px';
+  btn.textContent = (kind === 'share') ? '📨 施設長に共有' : '📨 施設に報告';
+  btn.onclick = function(){ shareToFacility(text, kind); };
+
+  wrap.appendChild(copyBtn);
+  wrap.appendChild(btn);
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+// クリップボードへコピー（堅牢版）。Clipboard API →（失敗時）execCommand →（それも不可）選択用に本文を表示。
+//   HTTPS（Cloudflare Pages）では Clipboard API が使える。LINE内ブラウザ等の制約に備えフォールバックを用意。
+function copyTextToClipboard_(text, btn) {
+  var original = btn ? btn.textContent : '';
+  function flash(ok) {
+    if (!btn) return;
+    btn.textContent = ok ? '✅ コピーしました' : '⚠️ 下の文をコピーしてください';
+    setTimeout(function(){ btn.textContent = original; }, 2000);
+  }
+  function execFallback() {
+    var ok = false;
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch(e) { ok = false; }
+    flash(ok);
+    if (!ok) showCopyFallbackText_(text);   // 手動コピー用に本文を選択可能な形で表示
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ flash(true); }, function(){ execFallback(); });
+      return;
+    }
+  } catch(e) { /* fallthrough */ }
+  execFallback();
+}
+
+// コピー不可時のフォールバック：本文を選択可能なバブルで表示（長押し→全選択→コピー）。
+function showCopyFallbackText_(text) {
+  addBubble('system', '↓ 下の文を長押しして「すべて選択」→「コピー」してください🌿');
+  var b = addBubble('system', text);
+  if (b) { b.style.userSelect = 'text'; b.style.webkitUserSelect = 'text'; b.style.whiteSpace = 'pre-wrap'; }
+}
+
+// ================================================================
+// メニュー別チャット開始（GAS経由でClaudeに最初のメッセージを生成させる）
+// ================================================================
+async function startMenuChat(menuKey) {
+  // chat menu の situation はメニューセットから引く（先生 welcome/menu6/menu7 も正しく送る）
+  var m = activeMenus()[menuKey];
+  var situation = (m && m.situation) || defaultMenuKey();
+
+  addTyping();
+  try {
+    // reset=true：メニュー切替時はGAS側セッション履歴をクリアして開始
+    var reply = await gasChat(situation, '開始', true);
+    removeTyping();
+    if (reply) addBubble('ai', reply);   // null＝先生失効の移行確認を描画済み（Step4）
+    chatHistory = [];  // 会話履歴はGASセッションが保持する
+  } catch(e) {
+    removeTyping();
+    addBubble('ai', 'うまく繋がれませんでした🌷 もう一度タップしてみてください🌿');
+  }
+}
+
+// ================================================================
+// GASチャット呼び出し（本物の buildPrompt = ペルソナ・九星・命式 を経由）
+// ================================================================
+// WEB_SPEC §7-1 案A：プロンプト生成はGAS側の buildPrompt に一本化。
+// index.html は uid・mode・最新発話のみ送り、応答 {ok, reply} を受け取る。
+async function gasChat(mode, msg, reset) {
+  var url = GAS_URL + '?action=chat'
+    + '&uid='  + encodeURIComponent(lineUid)
+    + '&mode=' + encodeURIComponent(mode || 'morning')
+    + '&msg='  + encodeURIComponent(msg || '')
+    + (reset ? '&reset=1' : '')
+    + (isSenseiUser() ? ('&as=' + encodeURIComponent(senseiChatMode)) : '')   // 両メニュー開放：枠判定に使う
+    + ((mode === 'menu3' && selectedStudentId) ? ('&student=' + encodeURIComponent(selectedStudentId)) : '');   // 実装E：選択生徒
+  var res  = await fetch(url);
+  var data = await res.json();
+  // 方式Y Step4：先生プラン失効 → 移行確認（はい/いいえボタンを描画）。通常の返信は出さない。
+  if (data && data.senseiExpired) { renderSenseiExpired(data); return null; }
+  if (data && data.ok && data.reply) return data.reply;
+  return 'ただいま少し混み合っています🌷 もう一度話しかけてみてください🌿';
+}
+
+// 方式Y Step4：先生プラン失効の確認バブル＋「はい（子育てへ移行）／いいえ（再契約）」ボタン。
+function renderSenseiExpired(data) {
+  addBubble('ai', (data && data.reply) || '先生プランの有効期限が切れました🌷');
+  var area = document.getElementById('chat-area');
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;';
+  var yes = document.createElement('button');
+  yes.className = 'btn-primary';
+  yes.style.cssText = 'width:auto;padding:10px 18px;font-size:14px;';
+  yes.textContent = 'はい、子育てNABItanへ移行する';
+  yes.onclick = function(){ doSenseiDowngrade(); };
+  var no = document.createElement('button');
+  no.className = 'btn-outline';
+  no.style.cssText = 'width:auto;padding:10px 18px;font-size:14px;';
+  no.textContent = 'いいえ、先生プランを続ける（再契約）';
+  no.onclick = function(){ showSenseiResubscribe(data && data.resubscribeUrl); };
+  wrap.appendChild(yes); wrap.appendChild(no);
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+// 「はい」＝子育てへ移行（園児・生徒情報削除＋索引削除）。以後は通常の子育てユーザー。
+async function doSenseiDowngrade() {
+  addBubble('system', '移行の手続きをしています…🌿');
+  try {
+    var r = await fetch(GAS_URL + '?action=senseiDowngrade&uid=' + encodeURIComponent(lineUid));
+    var d = await r.json();
+    if (d && d.ok) {
+      // 索引削除済み＝getUserInfo は子育てを返す。権威データを取り直す。
+      try {
+        var r2 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+        var d2 = await r2.json();
+        if (d2 && d2.ok) userInfo = d2;
+      } catch(e2) {}
+      senseiChatMode = 'sensei';
+      selectedStudentId = ''; selectedStudentName = '';
+      // 子育てUIへ切替（先生タブ→子育てタブ）。openChat の汎用「おかえりなさい」は出さず迎え文を表示。
+      document.getElementById('header-title').textContent =
+        isActingSensei() ? '先生NABItan チャット' : 'NABItan チャット';
+      renderMenuTabs();
+      currentMode = defaultMenuKey();
+      selectMenuTab(currentMode);
+      addBubble('ai', d.welcome || 'こんにちは🌸 子育てNABItanへ移行しました🌿');
+    } else {
+      addBubble('ai', '移行に失敗しました🌷 もう一度お試しください🌿');
+    }
+  } catch(e) {
+    addBubble('ai', '通信エラーです🌷 もう一度お試しください🌿');
+  }
+}
+
+// 「いいえ」＝先生プラン再契約（本契約 ¥2,500）の案内。リンクボタンで開く。
+function showSenseiResubscribe(url) {
+  addBubble('system', '先生プランの再契約（本契約 ¥2,500）はこちらからどうぞ🌷');
+  if (url) appendBillingLinks_([{ label: '✅ 再契約する（¥2,500）', url: url, primary: true }]);
+  else addBubble('system', '（準備中です）');
+}
+
+// ================================================================
+// 方式Y Step6b：先生の課金導線バナー
+// ================================================================
+// リンクボタン群を1つのまとまりとして描画（renderSenseiExpired と同じ体裁）。
+function appendBillingLinks_(links) {
+  var area = document.getElementById('chat-area');
+  if (!area || !links || !links.length) return;
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;';
+  links.forEach(function(l) {
+    var a = document.createElement('a');
+    a.className = l.primary ? 'btn-primary' : 'btn-outline';
+    a.style.cssText = 'width:auto;padding:10px 18px;font-size:14px;text-align:center;text-decoration:none;';
+    a.href = l.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = l.label;
+    wrap.appendChild(a);
+  });
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+// openChat 時に先生の課金状態（userInfo.senseiBilling）を見て、期限が近いときだけ案内を出す。
+//   trial      … お試し終了が近い（1〜7日）→ 本契約¥2,500 を案内
+//   contracted … 本契約の期限が近い（1〜10日・未サブスク）→ メイン/プロ の2択
+//   subscribed … 何も出さない（既に月額プラン加入済み）
+//   ※失効（daysLeft<=0）は chat 側の senseiExpired フロー（移行/再契約）が担当＝ここでは出さない。
+function renderSenseiBilling_() {
+  if (!isSenseiUser()) return;
+  var b = userInfo && userInfo.senseiBilling;
+  if (!b) return;
+  var d = (b.daysLeft == null) ? null : b.daysLeft;
+
+  if (b.stage === 'trial') {
+    if (d == null || d > 7 || d <= 0) return;   // お試し終了が近いときだけ
+    addBubble('system',
+      'お試し期間はあと' + d + '日です🌷\n' +
+      '続けてお使いいただくには本契約（¥2,500）をどうぞ🌸\n' +
+      '本契約すると園児・生徒を40人まで登録できます🌿');
+    appendBillingLinks_([{ label: '✅ 本契約する（¥2,500）', url: b.initialUrl, primary: true }]);
+    return;
+  }
+
+  if (b.stage === 'contracted') {
+    if (d == null || d > 10 || d <= 0) return;   // 本契約の期限が近いときだけ
+    addBubble('system',
+      '本契約の期限まであと' + d + '日です🌷\n' +
+      '継続には月額プランをお選びください🌸\n\n' +
+      '🌿 メイン ¥1,500/月：通常の先生プラン\n' +
+      '⭐ プロ ¥5,000/月：相談が多い先生向け（たっぷり使えます）');
+    appendBillingLinks_([
+      { label: '🌿 メインプラン（¥1,500/月）', url: b.mainUrl, primary: true  },
+      { label: '⭐ プロプラン（¥5,000/月）',   url: b.proUrl,  primary: false }
+    ]);
+    return;
+  }
+  // subscribed … 何も出さない
+}
+
+// ================================================================
+// 方式Y Step7：ご契約状況パネル＋解約
+// ================================================================
+// ISO 日付を「2026年8月9日」表記に。
+function fmtDate_(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+
+// onclick ボタン群を1まとまりで描画（appendBillingLinks_ のボタン版）。
+function appendActionButtons_(buttons) {
+  var area = document.getElementById('chat-area');
+  if (!area || !buttons || !buttons.length) return;
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:2px 0 12px;';
+  buttons.forEach(function(b) {
+    var el = document.createElement('button');
+    el.className = b.primary ? 'btn-primary' : 'btn-outline';
+    el.style.cssText = 'width:auto;padding:10px 18px;font-size:14px;';
+    el.textContent = b.label; el.onclick = b.onclick;
+    wrap.appendChild(el);
+  });
+  area.appendChild(wrap);
+  area.scrollTop = area.scrollHeight;
+}
+
+// 「💳 ご契約状況」パネル：現在のプラン・次回更新（validUntil）・解約ボタンを表示（子育て・先生 共通）。
+async function openBillingPanel() {
+  addBubble('system', '💳 ご契約状況');
+  // 最新状態を取得（validUntil・サブスク有無が変わっていることがあるため権威データを取り直す）。
+  try {
+    var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+    var d = await r.json();
+    if (d && d.ok) userInfo = d;
+  } catch (e) {}
+  var ui  = userInfo || {};
+  var sub = ui.subscription || {};
+  var sb  = ui.senseiBilling || null;
+  var vu  = fmtDate_(ui.validUntil);
+
+  // サブスク中
+  if (sub.active) {
+    addBubble('ai',
+      '現在のプラン：' + (sub.plan || 'ご契約中') + '\n' +
+      (vu ? ('次回更新日：' + vu + '\n') : '') +
+      '\n自動更新でご利用中です🌿');
+    if (sub.canCancel) {
+      addBubble('system', '解約をご希望の場合は下のボタンからどうぞ🌷\n（解約しても、今のご利用期間の終わりまではお使いいただけます）');
+      appendActionButtons_([{ label: '解約する', onclick: confirmCancelSub, primary: false }]);
+    } else {
+      addBubble('system', '※このご契約はアプリからの解約に未対応です🌷\nお手数ですが運営（nikkoriphoto63@gmail.com）までご連絡ください🌿');
+    }
+    return;
+  }
+
+  // 未サブスク：先生は課金導線（本契約/月額）を案内
+  if (isSenseiUser() && sb) {
+    if (sb.stage === 'trial') {
+      addBubble('ai', 'ただいまお試し期間中です🌸' +
+        (sb.daysLeft != null ? ('（あと' + sb.daysLeft + '日）') : '') +
+        (vu ? ('\n期限：' + vu) : '') +
+        '\n\n続けてお使いいただくには本契約（¥2,500）をどうぞ🌿');
+      appendBillingLinks_([{ label: '✅ 本契約する（¥2,500）', url: sb.initialUrl, primary: true }]);
+    } else if (sb.stage === 'contracted') {
+      addBubble('ai', '本契約でご利用中です🌸' +
+        (sb.daysLeft != null ? ('（あと' + sb.daysLeft + '日）') : '') +
+        (vu ? ('\n期限：' + vu) : '') +
+        '\n\n継続には月額プランをお選びください🌿');
+      appendBillingLinks_([
+        { label: '🌿 メインプラン（¥1,500/月）', url: sb.mainUrl, primary: true  },
+        { label: '⭐ プロプラン（¥5,000/月）',   url: sb.proUrl,  primary: false }
+      ]);
+    } else {
+      addBubble('ai', 'ただいまご利用中です🌸' + (vu ? ('\n期限：' + vu) : ''));
+    }
+    return;
+  }
+
+  // 子育て（未サブスク）：状況のみ表示（本登録の案内は期限接近時にチャットで行う）
+  addBubble('ai',
+    'ただいま無料期間でご利用中です🌸' + (vu ? ('\n期限：' + vu) : '') +
+    '\n\n続けてお使いいただくには本登録が必要です🌿\n期限が近づいたらチャットでご案内します🌷');
+}
+
+// 解約の最終確認（はい/やめる）。
+function confirmCancelSub() {
+  addBubble('system', '本当に解約しますか？🌷\n解約しても、今のご利用期間の終わりまではお使いいただけます🌿');
+  appendActionButtons_([
+    { label: 'はい、解約する', onclick: doCancelSub, primary: false },
+    { label: 'やめる',        onclick: function(){ addBubble('system', '解約はキャンセルしました🌸'); }, primary: true }
+  ]);
+}
+
+// 解約実行：GAS cancelSub（本人確認）→ Worker → Stripe API cancel_at_period_end。
+async function doCancelSub() {
+  addBubble('system', '解約の手続きをしています…🌿');
+  try {
+    var r = await fetch(GAS_URL + '?action=cancelSub&uid=' + encodeURIComponent(lineUid));
+    var d = await r.json();
+    if (d && d.ok) {
+      var until = fmtDate_(d.cancelAt) || fmtDate_(d.validUntil) || (userInfo && fmtDate_(userInfo.validUntil)) || '';
+      addBubble('ai', '解約の手続きが完了しました🌷\n' +
+        (until ? (until + ' まではこれまでどおりお使いいただけます🌿') : 'ご利用期間の終わりまではお使いいただけます🌿') +
+        '\nまたいつでも戻ってきてくださいね🌸');
+      try {
+        var r2 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+        var d2 = await r2.json(); if (d2 && d2.ok) userInfo = d2;
+      } catch (e2) {}
+    } else {
+      var msg = (d && d.error === 'no_subscription')
+        ? 'アプリからの解約対象が見つかりませんでした🌷\nお手数ですが運営（nikkoriphoto63@gmail.com）までご連絡ください🌿'
+        : '解約手続きに失敗しました🌷 少し時間をおいてもう一度お試しください🌿';
+      addBubble('ai', msg);
+    }
+  } catch (e) {
+    addBubble('ai', '通信エラーです🌷 もう一度お試しください🌿');
+  }
+}
+
+// ================================================================
+// チャット送信
+// ================================================================
+async function sendMessage() {
+  var input = document.getElementById('msg-input');
+  var text  = (input.value || '').trim();
+  if (!text) return;
+
+  // 番号入力でメニュー切り替え（先生は 1〜7・0=お迎え／子育ては 1〜5・0=おはよう）
+  var numMap = isActingSensei()
+    ? {'1':'menu1','2':'menu2','3':'menu3','4':'menu4','5':'menu5','6':'menu6','7':'menu7','0':'welcome'}
+    : {'1':'menu1','2':'menu2','3':'menu3','4':'menu4','5':'menu5','0':'morning'};
+  if (numMap[text]) {
+    input.value = ''; input.style.height = 'auto';
+    selectMenu(numMap[text]);
+    return;
+  }
+
+  document.getElementById('send-btn').disabled = true;
+  input.value = ''; input.style.height = 'auto';
+  addBubble('user', text);
+  addTyping();
+
+  try {
+    // 会話履歴はGASセッションが保持。最新発話のみ送る（reset=false）
+    var reply = await gasChat(currentMode, text, false);
+    removeTyping();
+    if (reply) addBubble('ai', reply);   // null＝先生失効の移行確認を描画済み（Step4）
+    // 先生メニュー：menu6=安否を施設に報告／menu4=保護者対応の文面を施設長に共有 のボタンを添える
+    if (reply && isActingSensei() && currentMode === 'menu6') appendFacilityButton(reply, 'safety');
+    if (reply && isActingSensei() && currentMode === 'menu4') appendFacilityButton(reply, 'share');
+  } catch(e) {
+    removeTyping();
+    addBubble('ai', 'エラーが発生しました🌷 もう一度お試しください🌿');
+  }
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('chat-area').scrollTop = 9999;
+}
+
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ================================================================
+// バブル追加
+// ================================================================
+function addBubble(role, text) {
+  var area = document.getElementById('chat-area');
+  var div  = document.createElement('div');
+  div.className = 'bubble ' + role;
+  if (text) div.textContent = text;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+function addTyping() {
+  var area = document.getElementById('chat-area');
+  var div  = document.createElement('div');
+  div.className = 'bubble ai'; div.id = 'typing-bubble';
+  div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+function removeTyping() {
+  var t = document.getElementById('typing-bubble'); if (t) t.remove();
+}
+
+// ================================================================
+// 登録フロー
+// ================================================================
+// svc=sensei で来た未登録ユーザー向けにウェルカム画面を先生向けの文言へ差し替える
+function applySenseiWelcomeIfNeeded_() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('svc') !== 'sensei') return;
+  var t = document.querySelector('#screen-welcome .welcome-title');
+  var b = document.querySelector('#screen-welcome .welcome-bubble');
+  if (t) t.textContent = '先生NABItan';
+  if (b) b.textContent = 'こんにちは🌸 先生NABItanです🌿\n\n'
+    + '保育・教育の現場に立つ先生に寄り添います🌷\n'
+    + '登録すると毎日の運勢・保護者対応・園児の育ちの相談ができます🌿';
+}
+
+// 先生登録フロー：氏名→生年月日→勤務先/緊急（役割・パートナー・子ども・familyIdはスキップ）
+var regIsSensei = false;
+var SENSEI_STEP_ORDER = ['2', '3', 'sensei', 'sensei-students', 'sensei-kosodate'];
+var senseiKoChildren = [];   // 先生：自身の子育て（方式Y）＝中央の子育てアカウントへ入れる子ども
+var senseiKoRole = '母';      // 先生の子育て本人の役割（父/母）。子育てアカウントの role・パートナー反転に使う
+
+function startRegister() {
+  var params = new URLSearchParams(window.location.search);
+  regIsSensei = (params.get('svc') === 'sensei');
+  children = []; trialStudents = []; senseiKoChildren = []; senseiKoRole = '母';   // 登録開始時に子ども/お試し園児/先生の子育て子・役割をリセット（前回セッションの残り防止）
+  showScreen('register');
+  if (regIsSensei) {
+    regData.serviceType = '保育士';
+    regData.role = '先生';
+    buildStepDots(SENSEI_STEP_ORDER.length);
+    goStep('2');   // 氏名から開始（役割ステップはスキップ）
+  } else {
+    regData.serviceType = '子育て';
+    buildStepDots(6);
+    goStep(1);
+  }
+}
+
+function buildStepDots(count) {
+  count = count || 6;
+  var c = document.getElementById('step-dots'); c.innerHTML = '';
+  for (var i = 1; i <= count; i++) {
+    var d = document.createElement('div');
+    d.className = 'step-dot'; d.id = 'dot-' + i;
+    c.appendChild(d);
+  }
+}
+
+function goStep(n) {
+  // 先生フロー特有のルーティング
+  if (regIsSensei) {
+    if (n === 1) { showScreen('welcome'); return; }   // step2 の「戻る」→ ウェルカムへ
+    if (n === 4) n = 'sensei';                         // step3 の「次へ」→ 勤務先/緊急へ
+  }
+  document.querySelectorAll('.reg-step').forEach(function(s){ s.classList.remove('active'); });
+
+  if (regIsSensei) {
+    var curIdx = SENSEI_STEP_ORDER.indexOf(String(n)) + 1;   // 1..3
+    for (var i = 1; i <= SENSEI_STEP_ORDER.length; i++) {
+      var ds = document.getElementById('dot-' + i);
+      if (ds) ds.className = 'step-dot' + (i < curIdx ? ' done' : i === curIdx ? ' current' : '');
+    }
+  } else {
+    for (var j = 1; j <= 6; j++) {
+      var d = document.getElementById('dot-' + j);
+      if (d) d.className = 'step-dot' + (j < n ? ' done' : j === n ? ' current' : '');
+    }
+  }
+
+  var s = document.getElementById('step-' + n);
+  if (s) s.classList.add('active');
+  document.getElementById('screen-register').scrollTop = 0;
+}
+
+function selectRole(role) {
+  regData.role = role;
+  document.getElementById('role-mother').classList.toggle('selected', role === '母');
+  document.getElementById('role-father').classList.toggle('selected', role === '父');
+  document.getElementById('btn-s1').disabled = false;
+}
+
+function validateStep2() {
+  var ok = !!(document.getElementById('p-last').value.trim() && document.getElementById('p-first').value.trim());
+  document.getElementById('btn-s2').disabled = !ok;
+}
+
+function selectPartner(has) {
+  document.getElementById('partner-yes').classList.toggle('selected', has);
+  document.getElementById('partner-no').classList.toggle('selected', !has);
+  document.getElementById('partner-form').style.display = has ? 'block' : 'none';
+  document.getElementById('btn-s4').disabled = false;
+  if (!has) regData.partner = null;
+}
+
+function addChild() {
+  var last  = document.getElementById('c-last').value.trim();
+  var first = document.getElementById('c-first').value.trim();
+  var birth = document.getElementById('c-birth').value.trim();
+  if (!last || !first) { alert('姓と名を入力してください'); return; }
+  if (children.length >= 5) { alert('お子さんは最大5人です'); return; }
+  var cChk = checkBirthInput(birth, true);   // 生年月日は任意・入れるなら範囲チェック
+  if (!cChk.ok) { alert('【お子さんの生年月日】\n' + cChk.msg); return; }
+  children.push({lastName:last, firstName:first, birthdate:cChk.ymd});
+  document.getElementById('c-last').value = '';
+  document.getElementById('c-first').value = '';
+  document.getElementById('c-birth').value = '';
+  renderChildren();
+}
+function removeChild(i) { children.splice(i,1); renderChildren(); }
+function renderChildren() {
+  var list = document.getElementById('children-list');
+  list.innerHTML = '';
+  children.forEach(function(c,i){
+    var d = document.createElement('div');
+    d.className = 'child-item';
+    d.innerHTML = '<span>' + c.lastName + ' ' + c.firstName +
+      (c.birthdate ? '（'+c.birthdate+'）' : '') + '</span>' +
+      '<button onclick="removeChild(' + i + ')">✕</button>';
+    list.appendChild(d);
+  });
+  document.getElementById('child-input-block').style.display = children.length >= 5 ? 'none' : 'block';
+}
+
+// ── 先生：お試し園児（任意）＝生徒名簿Doc（生徒管理と同じ）に入れる。child5枠は使わない（実装C改）──
+//   お試し期間中は生徒は合わせて5人まで（本契約後に40人まで・DataHandler studentLimit_）。
+function addSenseiStudent() {
+  var last  = document.getElementById('ss-last').value.trim();
+  var first = document.getElementById('ss-first').value.trim();
+  var birth = document.getElementById('ss-birth').value.trim();
+  if (!last || !first) { alert('姓と名を入力してください'); return; }
+  if (trialStudents.length >= 5) { alert('お試し期間中は生徒5人まで登録できます🌷\n（本契約後にさらに追加できます）'); return; }
+  var cChk = checkBirthInput(birth, true);   // 生年月日は任意・入れるなら範囲チェック
+  if (!cChk.ok) { alert('【園児の生年月日】\n' + cChk.msg); return; }
+  trialStudents.push({lastName:last, firstName:first, birthdate:cChk.ymd});
+  document.getElementById('ss-last').value  = '';
+  document.getElementById('ss-first').value = '';
+  document.getElementById('ss-birth').value = '';
+  renderSenseiStudents();
+}
+function removeSenseiStudent(i) { trialStudents.splice(i,1); renderSenseiStudents(); }
+function renderSenseiStudents() {
+  var list = document.getElementById('ss-list');
+  list.innerHTML = '';
+  trialStudents.forEach(function(c,i){
+    var d = document.createElement('div');
+    d.className = 'child-item';
+    d.innerHTML = '<span>' + c.lastName + ' ' + c.firstName +
+      (c.birthdate ? '（'+c.birthdate+'）' : '') + '</span>' +
+      '<button onclick="removeSenseiStudent(' + i + ')">✕</button>';
+    list.appendChild(d);
+  });
+  document.getElementById('ss-input-block').style.display = trialStudents.length >= 5 ? 'none' : 'block';
+}
+
+// ── 先生：あなた自身の子育て（方式Y）＝中央の子育てアカウントへ（本人＝先生＋パートナー＋子）──
+//   ここで入れたパートナー・子は先生シート(1TUOa)ではなく中央の子育て行に入る（子育てメニューで使う）。
+function skSelectRole(role) {
+  senseiKoRole = role;
+  document.getElementById('sk-role-mother').classList.toggle('selected', role === '母');
+  document.getElementById('sk-role-father').classList.toggle('selected', role === '父');
+}
+function skSelectPartner(has) {
+  document.getElementById('sk-pt-yes').classList.toggle('selected', has);
+  document.getElementById('sk-pt-no').classList.toggle('selected', !has);
+  document.getElementById('sk-pt-form').style.display = has ? 'block' : 'none';
+}
+function skAddChild() {
+  var last  = document.getElementById('sk-c-last').value.trim();
+  var first = document.getElementById('sk-c-first').value.trim();
+  var birth = document.getElementById('sk-c-birth').value.trim();
+  if (!last || !first) { alert('姓と名を入力してください'); return; }
+  if (senseiKoChildren.length >= 5) { alert('お子さんは最大5人までです🌷'); return; }
+  var cChk = checkBirthInput(birth, true);   // 任意・入れるなら範囲チェック
+  if (!cChk.ok) { alert('【お子さんの生年月日】\n' + cChk.msg); return; }
+  senseiKoChildren.push({lastName:last, firstName:first, birthdate:cChk.ymd});
+  document.getElementById('sk-c-last').value  = '';
+  document.getElementById('sk-c-first').value = '';
+  document.getElementById('sk-c-birth').value = '';
+  renderSkChildren();
+}
+function removeSkChild(i) { senseiKoChildren.splice(i,1); renderSkChildren(); }
+function renderSkChildren() {
+  var list = document.getElementById('sk-child-list');
+  list.innerHTML = '';
+  senseiKoChildren.forEach(function(c,i){
+    var d = document.createElement('div');
+    d.className = 'child-item';
+    d.innerHTML = '<span>' + c.lastName + ' ' + c.firstName +
+      (c.birthdate ? '（'+c.birthdate+'）' : '') + '</span>' +
+      '<button onclick="removeSkChild(' + i + ')">✕</button>';
+    list.appendChild(d);
+  });
+  document.getElementById('sk-child-block').style.display = senseiKoChildren.length >= 5 ? 'none' : 'block';
+}
+
+function selectFamilyId(has) {
+  document.getElementById('fid-yes').classList.toggle('selected', has);
+  document.getElementById('fid-no').classList.toggle('selected', !has);
+  document.getElementById('fid-form').style.display = has ? 'block' : 'none';
+  document.getElementById('btn-s6').disabled = false;
+  if (!has) { regData.familyIdInput = null; regData.planType = 'MAIN'; }
+}
+
+async function submitRegister() {
+  regData.parent = {
+    lastName:  document.getElementById('p-last').value.trim(),
+    firstName: document.getElementById('p-first').value.trim(),
+    birthdate: parseBirthdate(document.getElementById('p-birth').value.trim())
+  };
+  var hasPt = document.getElementById('partner-yes').classList.contains('selected');
+  if (hasPt) {
+    regData.partner = {
+      lastName:  document.getElementById('pt-last').value.trim(),
+      firstName: document.getElementById('pt-first').value.trim(),
+      birthdate: parseBirthdate(document.getElementById('pt-birth').value.trim())
+    };
+  }
+  regData.children = children;
+  var hasFid = document.getElementById('fid-yes').classList.contains('selected');
+  if (hasFid) {
+    regData.familyIdInput = (document.getElementById('fid-input').value || '').trim().toUpperCase();
+    regData.planType = regData.familyIdInput ? 'FAMILY' : 'MAIN';
+  }
+
+  if (regIsSensei) {
+    // 先生登録：勤務先施設・緊急連絡先を付与。先生シート(1TUOa)の行はパートナー/子ども/familyIdを使わない。
+    regData.serviceType      = '保育士';
+    regData.role             = '先生';
+    regData.workplace        = (document.getElementById('s-workplace').value || '').trim();
+    regData.emergencyContact = (document.getElementById('s-emergency').value || '').trim();
+    regData.trialStudents    = trialStudents;   // お試し園児は生徒名簿Docへ（child5枠は使わない）
+    regData.children         = [];              // 先生シートの行は子5枠を使わない
+    regData.partner          = null;            // 先生シートの行はパートナーを持たない（方式Y）
+
+    // 方式Y：先生自身の子育て（特典）＝中央の子育てアカウントへ。本人=regData.parent（先生本人）。
+    var skHasPt = document.getElementById('sk-pt-yes').classList.contains('selected');
+    var koPartner = null;
+    if (skHasPt) {
+      koPartner = {
+        lastName:  (document.getElementById('sk-pt-last').value || '').trim(),
+        firstName: (document.getElementById('sk-pt-first').value || '').trim(),
+        birthdate: parseBirthdate((document.getElementById('sk-pt-birth').value || '').trim())
+      };
+    }
+    // ⚠️ 子育て本人の role は父/母（regData.role='先生' は使わない）。パートナーは registerUserOnly が逆で作る。
+    regData.kosodate = { partner: koPartner, children: senseiKoChildren, role: senseiKoRole };
+  } else {
+    regData.serviceType = '子育て';
+  }
+
+  // 生年月日の範囲チェック（優しく差し戻す・本人＋パートナー）。該当ステップへ戻す。
+  var pChk = checkBirthInput(document.getElementById('p-birth').value, true);
+  if (!pChk.ok) { alert('【あなたの生年月日】\n' + pChk.msg); goStep(regIsSensei ? '3' : 3); return; }
+  if (regData.partner) {
+    var ptChk = checkBirthInput(document.getElementById('pt-birth').value, true);
+    if (!ptChk.ok) { alert('【パートナーの生年月日】\n' + ptChk.msg); goStep(4); return; }
+  }
+  // 方式Y：先生の子育てアドオン（パートナー）の生年月日も検証。該当ステップへ戻す。
+  if (regIsSensei && regData.kosodate && regData.kosodate.partner) {
+    var koChk = checkBirthInput(document.getElementById('sk-pt-birth').value, true);
+    if (!koChk.ok) { alert('【パートナーの生年月日】\n' + koChk.msg); goStep('sensei-kosodate'); return; }
+  }
+
+  // 検証を通過したら、送信前に「入力内容の確認」画面を表示（修正/登録をタップで選べる）。
+  showRegisterConfirm();
+}
+
+// 確認画面：regData（submitRegister で構築済み）を一覧表示して確認画面へ。
+function showRegisterConfirm() {
+  document.getElementById('confirm-body').innerHTML = renderRegisterConfirm();
+  var cb = document.getElementById('btn-confirm-reg');
+  cb.disabled = false; cb.textContent = '✅ この内容で登録';
+  showScreen('confirm');
+}
+
+// 確認画面の「修正する」＝登録フローの先頭ステップへ戻る（入力値は保持）。
+function backToEditFromConfirm() {
+  showScreen('register');
+  goStep(regIsSensei ? '2' : 1);
+}
+
+// 確認内容のHTMLを組み立てる（先生/子育てで出し分け）。
+function renderRegisterConfirm() {
+  function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  function row(label, val){ return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.08);"><div style="min-width:96px;color:#888;font-size:13px;">'+esc(label)+'</div><div style="flex:1;font-size:14px;">'+(val||'<span style=\"color:#bbb;\">（なし）</span>')+'</div></div>'; }
+  function person(p){ if(!p||(!p.lastName&&!p.firstName&&!p.birthdate)) return ''; return esc((p.lastName||'')+' '+(p.firstName||''))+(p.birthdate?'（'+esc(p.birthdate)+'）':''); }
+  function kids(list){ if(!list||!list.length) return ''; return list.map(function(c){return person(c);}).filter(Boolean).join('<br>'); }
+
+  var h = '';
+  var p = regData.parent || {};
+  if (regIsSensei) {
+    h += '<div style="font-weight:600;margin:6px 0;">🌿 先生としての登録</div>';
+    h += row('お名前', person(p));
+    h += row('勤務先', esc(regData.workplace));
+    h += row('園長メール', esc(regData.emergencyContact));
+    h += row('お試し園児', kids(regData.trialStudents));
+    var ko = regData.kosodate || {};
+    h += '<div style="font-weight:600;margin:14px 0 6px;">🍼 あなた自身の子育て（特典・任意）</div>';
+    h += row('あなたの役割', esc(ko.role || '母'));
+    h += row('パートナー', person(ko.partner));
+    h += row('お子さん', kids(ko.children));
+  } else {
+    h += '<div style="font-weight:600;margin:6px 0;">🌸 ご登録内容</div>';
+    h += row('お名前', person(p));
+    h += row('役割', esc(regData.role));
+    h += row('パートナー', person(regData.partner));
+    h += row('お子さん', kids(regData.children));
+    h += row('ファミリーID', esc(regData.familyIdInput));
+  }
+  return h;
+}
+
+// 実際の登録送信（確認画面の「この内容で登録」から呼ぶ）。
+async function doSubmitRegister() {
+  var btn = document.getElementById('btn-confirm-reg');
+  btn.disabled = true; btn.textContent = '登録中…';
+
+  try {
+    var url = GAS_URL + '?action=register' +
+              '&uid='     + encodeURIComponent(lineUid) +
+              '&payload=' + encodeURIComponent(JSON.stringify(regData));
+    var res = await fetch(url);
+    var raw = await res.text();
+    var data;
+    try {
+      data = JSON.parse(raw);
+    } catch(pe) {
+      // GASがJSONでなく素のテキスト（例：「NABItan GAS vX alive」）を返した場合＝
+      // デプロイが古い／action=register 分岐が無い可能性。原文を見せて原因を可視化する。
+      alert('サーバー応答が不正です🌷\nGASを「新しいバージョン」で再デプロイ＆GAS_URL確認が必要かもしれません。\n\n応答: ' + (raw || '').slice(0,100));
+      btn.disabled = false; btn.textContent = '✅ この内容で登録';
+      return;
+    }
+    if (data.ok) {
+      // 登録直後は userInfo 未取得＝メニュー判定が子育てに落ちるため、regData から補完
+      // （先生登録なら先生メニューを即反映する。リロード時は getUserInfo が上書き）
+      userInfo = {
+        ok: true, registered: true,
+        serviceType:      regData.serviceType || '子育て',
+        firstName:        (regData.parent && regData.parent.firstName) || '',
+        lastName:         (regData.parent && regData.parent.lastName)  || '',
+        workplace:        regData.workplace || '',
+        emergencyContact: regData.emergencyContact || '',
+        persona:          'nikkori'
+      };
+      showScreen('done');
+    } else if (data.error === 'already_registered') {
+      alert('すでに登録済みです🌸');
+      // 登録済み＝先生/子育ての判定に serviceType が要るので userInfo を取得してから開く
+      try {
+        var r2 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+        var d2 = await r2.json();
+        if (d2 && d2.ok) userInfo = d2;
+      } catch(e2) {}
+      openChat(false);
+    } else if (data.error === 'invalid_birthdate') {
+      alert('生年月日をご確認ください🌷\n西暦（1900〜2100年）で入力してね🌸');
+      btn.disabled = false; btn.textContent = '✅ この内容で登録';
+      showScreen('register'); goStep(regIsSensei ? '3' : 3);
+    } else {
+      alert('登録に失敗しました🌷\n(' + (data.error||'') + ')');
+      btn.disabled = false; btn.textContent = '✅ この内容で登録';
+    }
+  } catch(e) {
+    alert('通信エラーです🌷\n(' + (e && e.message ? e.message : e) + ')');
+    btn.disabled = false; btn.textContent = '✅ この内容で登録';
+  }
+}
+
+// ================================================================
+// 生年月日パース
+// ================================================================
+function parseBirthdate(input) {
+  if (!input) return '';
+  var digits = input.replace(/[^0-9]/g,'');
+  if (digits.length === 8)
+    return digits.substring(0,4)+'-'+digits.substring(4,6)+'-'+digits.substring(6,8);
+  var m = input.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  return '';
+}
+
+// 生年月日の入力チェック（優しく差し戻す用）。RyuzenEngineと同じ西暦1900〜2100を許可。
+//   allowEmpty=true なら空欄OK（＝不明。後から登録可）。
+//   戻り値：{ok:true, ymd} / {ok:false, msg}
+var BIRTH_MIN_YEAR = 1900, BIRTH_MAX_YEAR = 2100;
+function checkBirthInput(raw, allowEmpty) {
+  raw = (raw || '').trim();
+  if (!raw) return allowEmpty ? {ok:true, ymd:''} : {ok:false, msg:'生年月日を入力してね🌸'};
+  var ymd = parseBirthdate(raw);
+  if (!ymd) return {ok:false, msg:'生年月日は「19850401」か「1985/04/01」の形式で入力してね🌸'};
+  var year = parseInt(ymd.substring(0,4), 10);
+  if (year < BIRTH_MIN_YEAR || year > BIRTH_MAX_YEAR) {
+    return {ok:false, msg:'生年月日の西暦をご確認ください🌷\n（' + BIRTH_MIN_YEAR + '〜' + BIRTH_MAX_YEAR + '年で入力してね）\n\n入力：' + raw + ' → ' + ymd};
+  }
+  return {ok:true, ymd:ymd};
+}
+
+// step3（本人の生年月日）の「次へ」：範囲チェックしてから進む
+function goFromParentBirth() {
+  var chk = checkBirthInput(document.getElementById('p-birth').value, true);
+  if (!chk.ok) { alert(chk.msg); return; }
+  goStep(4);
+}
+</script>
+</body>
+</html>
