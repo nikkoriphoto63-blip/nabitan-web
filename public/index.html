@@ -535,6 +535,29 @@ var selectedStudentName = '';
 var _m3Students = [];         // 実装E：menu3ピッカーの生徒一覧（5人ずつ表示のため保持）
 var _m3Offset = 0;            // すでに表示した人数（ページング）
 
+// こどもNABItan説明画面（v3.57）：「子供サポート」タイル（?svc=kodomo）で
+//   登録済みの大人（先生/子育て）が開いたとき／未登録者が開いたときに使う。
+var kodomoInfoActive      = false;   // 説明画面を表示中か
+var kodomoInfoInteractive = false;   // true＝登録済みの大人（Q&A可）／false＝未登録者（Q&A不可）
+var KODOMO_INFO_UNITS = [
+  { title: '① こどもNABItanとは',
+    body: 'お子さん本人が自分のスマホから使う"秘密の相談相手"です🌸\n' +
+          'ニックネームをつけて話せる、子育てNABItan・先生NABItanに続く3つ目のサービスです。' },
+  { title: '② お子さんのメリット',
+    body: '親に直接言いにくいことも、安心して話せます🌿\n' +
+          '診断名や「普通は〜」といった否定的な言葉は使わない安全設計です。\n' +
+          '対象は小学校高学年〜高校生・特別支援対応です。' },
+  { title: '③ 相談内容の共有について',
+    body: '話した内容は親には見せません（監視ではなく味方です）🌷\n' +
+          'ただし、命に関わる緊急時や深刻な兆候（いじめ・自傷など）は、3段階のレベルで必ず親にお知らせします。' },
+  { title: '④ 料金',
+    body: '月額800円（ファミリープランと同額）です🌸\n' +
+          'トークン追加は月2回まで（1回500円）ご利用いただけます。' },
+  { title: '⑤ 始め方',
+    body: '現在は「子育てNABItan」をご利用のご家族のお子さま限定です（一般開放は将来予定）🌿\n' +
+          'ご興味があれば、子育てNABItanの「家族情報の変更」から「この子にスマホ」導線でご案内予定です（現在準備中）。' }
+];
+
 // メニュー定義
 var MENUS = {
   morning: { label:'🌅 おはよう',           row:1, situation:'morning',
@@ -693,15 +716,26 @@ window.addEventListener('DOMContentLoaded', function() {
   (async function boot() {
     lineUid = await resolveUid_();
     if (!lineUid) { showScreen('error'); return; }
+    // v3.57：「子供サポート」タイル（?svc=kodomo）は、こどもNABItanの説明画面へ。
+    //   登録済み(こども以外)＝Q&A可の説明画面／未登録＝説明のみ（Q&A無し・登録導線も出さない）。
+    var svcParam = new URLSearchParams(window.location.search).get('svc');
     try {
       var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
       var data = await r.json();
       if (data.ok && data.registered) {
         userInfo = data;
-        openChat(false);
+        if (svcParam === 'kodomo' && userInfo.serviceType !== 'こども') {
+          openKodomoInfoScreen(true);
+        } else {
+          openChat(false);
+        }
       } else {
-        applySenseiWelcomeIfNeeded_();
-        showScreen('welcome');
+        if (svcParam === 'kodomo') {
+          openKodomoInfoScreen(false);
+        } else {
+          applySenseiWelcomeIfNeeded_();
+          showScreen('welcome');
+        }
       }
     } catch (e) {
       applySenseiWelcomeIfNeeded_();
@@ -780,6 +814,37 @@ async function startChatFromDone() {
     if (d && d.ok) userInfo = d;   // 取得できれば権威データで上書き（失敗時は登録時の補完 userInfo のまま）
   } catch(e) {}
   openChat(true);
+}
+
+// ================================================================
+// こどもNABItan説明画面（v3.57）
+// ================================================================
+// interactive=true：登録済みの大人（先生/子育て）＝目次→単元→Q&A。
+// interactive=false：未登録者＝目次→単元のみ（入力欄を隠す・Q&A不可）。
+function openKodomoInfoScreen(interactive) {
+  kodomoInfoActive      = true;
+  kodomoInfoInteractive = !!interactive;
+  document.getElementById('header-title').textContent = 'こどもNABItanについて';
+  showScreen('chat');
+  document.getElementById('menu-bar').style.display = 'none';   // 通常メニュータブは無関係のため非表示
+  document.getElementById('chat-area').innerHTML = '';
+  document.getElementById('input-area').style.display = interactive ? 'flex' : 'none';
+
+  addBubble('ai', 'こどもNABItan（お子さん本人向け）についてご案内します🌸\n\n気になる項目をタップしてください🌿');
+  appendActionButtons_(KODOMO_INFO_UNITS.map(function(u, i) {
+    return { label: u.title, onclick: function(){ showKodomoInfoUnit_(i); }, primary: false };
+  }));
+  if (interactive) {
+    addBubble('system', '👆 上の項目をタップするか、下の入力欄からご質問いただけます🌿\n（こどもNABItanに関するご質問にお答えします）');
+  } else {
+    addBubble('system', '👆 上の項目をタップしてご覧ください🌿\n（詳しいご相談は「子育てNABItan」からどうぞ）');
+  }
+}
+
+function showKodomoInfoUnit_(i) {
+  var u = KODOMO_INFO_UNITS[i];
+  if (!u) return;
+  addBubble('ai', '【' + u.title + '】\n' + u.body);
 }
 
 // ================================================================
@@ -1002,6 +1067,8 @@ async function showShareInfo() {
   var code = (userInfo && userInfo.referralCode) || '';
   var lid  = (userInfo && userInfo.lineId) || '';
   var qr   = (userInfo && userInfo.qrUrl) || '';
+  var fid  = (userInfo && userInfo.familyId) || '';
+  var isKosodate = !userInfo || userInfo.serviceType === '子育て';
   var area = document.getElementById('chat-area');
   var card = document.createElement('div');
   card.className = 'info-card';
@@ -1014,6 +1081,10 @@ async function showShareInfo() {
           + '<div class="card-text">お友達が登録時にこのコードを入力すると、おふたりとも無料期間が7日間延長されます🌿</div>';
   } else if (lid) {
     html += '<div class="card-text">私のLINE ID：<b>' + lid + '</b>\n登録時に入力してもらってください🌿</div>';
+  }
+  if (fid && isKosodate) {
+    html += '<div class="share-code"><span>あなたのファミリーID</span><b id="fam-id">' + fid + '</b></div>'
+          + '<div class="card-text">パートナーが登録時にこのIDを入力すると、ファミリー料金（月額800円）でご利用いただけます🌿</div>';
   }
   card.innerHTML = html;
   area.appendChild(card);
@@ -1034,6 +1105,23 @@ async function showShareInfo() {
       btn.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください：' + code;
     };
     card.appendChild(btn);
+  }
+  if (fid && isKosodate) {
+    var fbtn = document.createElement('button');
+    fbtn.className = 'fam-cancel';
+    fbtn.style.width = '100%';
+    fbtn.style.marginTop = '4px';
+    fbtn.textContent = '📋 ファミリーIDをコピー';
+    fbtn.onclick = function() {
+      var ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(fid); ok = true;
+        }
+      } catch(e) { ok = false; }
+      fbtn.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください：' + fid;
+    };
+    card.appendChild(fbtn);
   }
   area.scrollTop = area.scrollHeight;
 }
@@ -1766,6 +1854,26 @@ async function sendMessage() {
   var input = document.getElementById('msg-input');
   var text  = (input.value || '').trim();
   if (!text) return;
+
+  // v3.57：こどもNABItan説明画面のQ&A（通常メニューの番号切替・currentModeとは無関係な専用ルート）。
+  if (kodomoInfoActive) {
+    if (!kodomoInfoInteractive) return;   // 念のための二重ガード（未登録時は入力欄を隠しているはず）
+    document.getElementById('send-btn').disabled = true;
+    input.value = ''; input.style.height = 'auto';
+    addBubble('user', text);
+    addTyping();
+    try {
+      var infoReply = await gasChat('kodomoInfo', text, false);
+      removeTyping();
+      if (infoReply) addBubble('ai', infoReply);
+    } catch (eInfo) {
+      removeTyping();
+      addBubble('ai', 'うまく繋がれませんでした🌷 もう一度お試しください🌿');
+    }
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-area').scrollTop = 9999;
+    return;
+  }
 
   // 番号入力でメニュー切り替え（先生は 1〜7・0=お迎え／子育ては 1〜5・0=おはよう）
   var numMap = isActingSensei()
