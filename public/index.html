@@ -907,7 +907,8 @@ function selectMenu(key) {
         '🆘 緊急避難 → つらいとき\n\n' +
         '🎭 キャラクター設定 → 話し相手のキャラを変更\n' +
         '📢 友達紹介 → 紹介コード・QRの表示\n' +
-        '👨‍👩‍👧 家族情報の変更 → お子さん・パートナーの追加や修正\n\n' +
+        '👨‍👩‍👧 家族情報の変更 → お子さん・パートナーの追加や修正\n' +
+        '　※パートナーのお名前・生年月日を直す時は、いったん削除してから追加し直してください\n\n' +
         '番号（1〜5）を送っても同じメニューに移れます🌸'));
     return;
   }
@@ -1177,6 +1178,7 @@ function famRenderMenu() {
     html += famMemberRow(c.label, c.lastName + c.firstName, c.birthdate);
   });
   if (d.partner) html += famMemberRow(d.partner.label, d.partner.name, '');
+  if (d.partner) html += '<div class="fam-note">※パートナーのお名前・生年月日は直接修正できません。直したい時はいったん削除してから「➕ パートナーを追加」で入力し直してください🌿</div>';
   html += '<div style="height:6px"></div>';
 
   var canChild   = (d.children || []).length < (d.childMax || 5);
@@ -1233,6 +1235,7 @@ function famEditSelect() {
   (d.children || []).forEach(function(c) {
     html += '<button class="fam-btn" onclick="famEditField(\'' + c.target + '\',\'' + famEsc(c.lastName + c.firstName) + '\')">' + c.label + '（' + (c.lastName + c.firstName) + '）</button>';
   });
+  if (d.partner) html += '<div class="fam-note">※パートナーがここに出ないのは仕様です。お名前・生年月日を直したい時は、いったん削除してから「➕ パートナーを追加」で入力し直してください🌿</div>';
   html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
   FAM.panel.innerHTML = html;
   famScroll();
