@@ -718,7 +718,9 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!lineUid) { showScreen('error'); return; }
     // v3.57：「子供サポート」タイル（?svc=kodomo）は、こどもNABItanの説明画面へ。
     //   登録済み(こども以外)＝Q&A可の説明画面／未登録＝説明のみ（Q&A無し・登録導線も出さない）。
-    var svcParam = new URLSearchParams(window.location.search).get('svc');
+    var svcParam  = new URLSearchParams(window.location.search).get('svc');
+    // v3.62：「使い方」タイル（?menu=howto）は、チャットを開いた直後に使い方ガイドを表示。
+    var menuParam = new URLSearchParams(window.location.search).get('menu');
     try {
       var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
       var data = await r.json();
@@ -728,6 +730,7 @@ window.addEventListener('DOMContentLoaded', function() {
           openKodomoInfoScreen(true);
         } else {
           openChat(false);
+          if (menuParam === 'howto' && !isActingSensei()) openHowtoTopics();
         }
       } else {
         if (svcParam === 'kodomo') {
@@ -883,8 +886,9 @@ function selectMenu(key) {
     return;
   }
   if (key === 'howto') {
-    addBubble('system', isActingSensei()
-      ? ('【先生NABItanの使い方】🌸\n\n' +
+    if (isActingSensei()) {
+      addBubble('system',
+        '【先生NABItanの使い方】🌸\n\n' +
         '上のメニューをタップして選んでください🌿\n\n' +
         '🌸 お迎え → 今日のご挨拶と気配\n' +
         '⭐ 運勢・仕事運 → 今日の巡りと対人運\n' +
@@ -896,20 +900,10 @@ function selectMenu(key) {
         '🆘 緊急避難 → つらいとき\n\n' +
         '🍼 子育てモードへ → 個人の子育て・パートナー相談はこちら（特典・基本無料）\n' +
         '🎭 キャラクター設定 → 話し相手のキャラを変更\n\n' +
-        '番号（1〜7）を送っても同じメニューに移れます🌸')
-      : ('【NABItanの使い方】🌸\n\n' +
-        '上のメニューをタップして話題を選んでください🌿\n\n' +
-        '🌅 おはよう → 今日の朝メッセージ\n' +
-        '⭐ 今日の運勢 → バイオリズム解説\n' +
-        '💆 ストレスチェック → 今の状態確認\n' +
-        '🌿 子育て相談 → 子育ての悩み相談\n' +
-        '🏠 パパ・ママのお部屋 → ふたりの関係\n' +
-        '🆘 緊急避難 → つらいとき\n\n' +
-        '🎭 キャラクター設定 → 話し相手のキャラを変更\n' +
-        '📢 友達紹介 → 紹介コード・QRの表示\n' +
-        '👨‍👩‍👧 家族情報の変更 → お子さん・パートナーの追加や修正\n' +
-        '　※パートナーのお名前・生年月日を直す時は、いったん削除してから追加し直してください\n\n' +
-        '番号（1〜5）を送っても同じメニューに移れます🌸'));
+        '番号（1〜7）を送っても同じメニューに移れます🌸');
+    } else {
+      openHowtoTopics();
+    }
     return;
   }
 
@@ -1347,6 +1341,107 @@ async function famPost(op, payload, successMsg) {
     alert('通信エラーです🌷\n（' + (e && e.message ? e.message : e) + '）');
     if (btn) { btn.disabled = false; btn.textContent = '保存'; }
   }
+}
+
+// ================================================================
+// ❓ 使い方ガイド（目次タップ式・子育て/こどもユーザー向け）
+// ================================================================
+// 実際の数字（2026/07・佐原氏確認済み）：基本プラン月80回・追加チャージ500円で60回・
+// メイン1,000円/月・パートナー800円/月。料金や回数を変えたらここも更新すること。
+var HOWTO_TOPICS = [
+  { label: 'NABItanの効果的な使い方', body:
+    '何かが起きてから相談するより、何でもない日にこそ話しかけてみてください🌿\n\n' +
+    'NABItanは、あなたの生年月日データと今日の巡りを組み合わせて、その日そのときのあなたに合った言葉を返します。\n\n' +
+    '「今日ちょっと疲れてる」「特に理由はないけど話したい」だけでも大丈夫🌸\n\n' +
+    '毎朝届く「おはよう」メッセージから話しかけると、今日の調子を踏まえた会話がすぐ始められます。' },
+  { label: '基本料金で何回相談できる？', body:
+    'メインプラン（月額1,000円）・パートナー追加（月額800円）には、月80回までの相談回数が含まれています🌿\n\n' +
+    '「1回」は、あなたが話しかけてNABItanが返信するまでを1往復として数えます。\n\n' +
+    '朝のメッセージ・メニューを開くだけの操作・🆘緊急避難はカウントされません🌸\n\n' +
+    '月が変わると自動でリセットされるので、繰り越しの心配は不要です。' },
+  { label: '相談回数を使い切ったらどうなる？', body:
+    '80回を使い切ると、その月はいったんお休みになります🌷\n\n' +
+    'チャット画面に案内が表示され、そこから追加チャージに進めます。\n\n' +
+    'チャージ後はすぐに反映され、そのまま会話を続けられます🌿\n\n' +
+    '🆘緊急避難だけは、回数を使い切っていても常に使えます。' },
+  { label: 'トークン追加でどれくらい増える？', body:
+    '1回500円の追加チャージで、60回分の相談が上乗せされます🌸\n\n' +
+    '基本の80回とは別枠で積み増しされるので、その月はすぐに使い切れます。\n\n' +
+    '何回でも追加できるので、忙しい月・話したいことが多い月も安心です🌿' },
+  { label: '夫婦間で相談する大切さ', body:
+    '子育ての大変さは、パートナーと分かち合うだけで軽くなることがあります🌸\n\n' +
+    'NABItanは、あなたとパートナー、それぞれの生年月日データを重ねて見ることができます。\n\n' +
+    '「なんとなくすれ違う」「言葉にできないモヤモヤ」を、ふたりそれぞれの状態から扱うので、一方だけを責めない相談ができます🌿' },
+  { label: 'パートナーの「気づいていないこと」を知る意味', body:
+    '本人も気づかないうちに、無理をしていたり、余裕をなくしていることがあります🌷\n\n' +
+    'NABItanはパートナーの生年月日データも参照するので、「実は今、こういう状態かもしれない」という視点をそっと届けられます。\n\n' +
+    '知ることで、責めるより先に、労わる選択ができるようになります🌸' },
+  { label: '夫婦関係が子どもに与える影響', body:
+    '子どもは、直接叱られていなくても、両親の間の緊張した空気を敏感に感じ取ります🌿\n\n' +
+    '夫婦関係が安定している時期ほど、子どもの情緒も落ち着きやすいと言われます。\n\n' +
+    'NABItanで夫婦の状態を早めに整えることは、間接的に子どもを守ることにもつながります🌸' },
+  { label: '他のAIとNABItanは何が違う？', body:
+    '一般的なAIは、一般論としての子育てアドバイスを返します🌿\n\n' +
+    'NABItanは、あなた・パートナー・お子さんそれぞれの生年月日データと、今日の巡りを重ねて、「今のあなたに合った言葉」だけを返します。\n\n' +
+    '正しさより先に、まず「それでいい」と認めることを大切にしています🌸' },
+  { label: '上手な相談の仕方', body:
+    '状況の説明より先に、気持ちをそのまま送ってみてください🌿\n\n' +
+    '◯「最近子どもが朝ぐずって困っています」\n' +
+    '◯「夫との会話が減ってきた気がする」\n\n' +
+    '✕「どうすればいいですか？」だけだと、NABItanも状況をつかみにくくなります。\n\n' +
+    '思ったままの言葉で大丈夫です🌸' },
+  { label: '緊急避難の使い方', body:
+    '🆘緊急避難は、つらい気持ちがあふれそうな時のための特別な部屋です🌿\n\n' +
+    '回数無制限・追加チャージ不要で、いつでも使えます。\n\n' +
+    'ここではキャラクター設定に関わらず「なびタン」が対応し、アドバイスより先に、安全に気持ちを落ち着けることを優先します🌸' },
+  { label: 'こんな時は迷わず緊急避難', body:
+    '・「消えたい」「もう無理」など、強い言葉が浮かんだとき\n' +
+    '・子どもやパートナーに手が出そう、怒鳴ってしまいそうなとき\n' +
+    '・涙が止まらない、頭が真っ白になっているとき\n\n' +
+    'ひとりで抱え込まず、🆘緊急避難のボタンをタップしてください🌿\n\n' +
+    '迷ったら押していい場所です🌸' }
+];
+
+var HOWTO = { panel: null };
+
+function howtoRemovePanel() {
+  if (HOWTO.panel && HOWTO.panel.parentNode) HOWTO.panel.parentNode.removeChild(HOWTO.panel);
+  HOWTO.panel = null;
+}
+
+function howtoScroll() {
+  var area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+}
+
+function openHowtoTopics() {
+  howtoRemovePanel();
+  var area = document.getElementById('chat-area');
+  HOWTO.panel = document.createElement('div');
+  HOWTO.panel.className = 'info-card';
+  area.appendChild(HOWTO.panel);
+  howtoRenderTopics();
+  howtoScroll();
+}
+
+function howtoRenderTopics() {
+  var html = '<div class="card-title">❓ 使い方ガイド</div>'
+    + '<div class="card-text">気になる項目をタップしてください🌿</div>'
+    + '<div style="height:4px"></div>';
+  HOWTO_TOPICS.forEach(function(t, i) {
+    html += '<button class="fam-btn" onclick="howtoOpenTopic(' + i + ')">' + t.label + '</button>';
+  });
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="howtoRemovePanel()">閉じる</button></div>';
+  HOWTO.panel.innerHTML = html;
+}
+
+function howtoOpenTopic(i) {
+  var t = HOWTO_TOPICS[i];
+  var html = '<div class="card-title">' + t.label + '</div>'
+    + '<div class="card-text">' + t.body + '</div>'
+    + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="howtoRenderTopics()">← 目次にもどる</button></div>';
+  HOWTO.panel.innerHTML = html;
+  howtoScroll();
 }
 
 // ================================================================
