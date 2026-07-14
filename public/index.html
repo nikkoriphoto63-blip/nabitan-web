@@ -1047,6 +1047,45 @@ function selectMenu(key) {
   if (_m && _m.desc) addBubble('system', '【' + _m.label + '】\n' + _m.desc);
   else addBubble('system', _m ? _m.label + ' を開きます…' : '');
   startMenuChat(key);
+  // こども🆘（フェーズ5）：子ども自身が選べるボタンを添える（自動では何もしない）。
+  if (isKodomoUser() && key === 'menu5') appendKodomoSosButtons_();
+}
+
+// こども🆘の見守りボタン（子どもが押したときだけ動く・急かさない）。
+function appendKodomoSosButtons_() {
+  addBubble('system', 'ひとりで かかえこまなくて いいよ🌿\nもし つたえたく なったら、下から えらべるよ（えらばなくても だいじょうぶ）。');
+  appendActionButtons_([
+    { label: '🌸 おうちの人に、そっと伝える', onclick: kodomoNotifyParent_, primary: false },
+    { label: '📞 ほかの人にも 話す',            onclick: kodomoShowHotlines_, primary: false }
+  ]);
+}
+
+// 「おうちの人に、そっと伝える」＝押したときだけ見守り親へ通知（内容は伝えない）。
+async function kodomoNotifyParent_() {
+  addBubble('system', 'つたえているよ…🌿');
+  try {
+    var res = await fetch(GAS_URL + '?action=kodomoNotifyParent&uid=' + encodeURIComponent(lineUid));
+    var d = await res.json();
+    if (d && d.ok && d.notified) {
+      addBubble('ai', 'つたえたよ🌸\nあなたを 大事に おもっているからね。\nひとりじゃ ないよ🌿');
+    } else if (d && d.ok && d.reason === 'no_parent') {
+      addBubble('ai', 'いま おうちの人には つたえられなかったけれど、\nわたしは ここにいるよ🌿\n「📞 ほかの人にも 話す」も つかえるよ。');
+    } else {
+      addBubble('ai', 'うまく つたえられなかったみたい🌷\nでも、あなたの気もちは ちゃんと きいているよ🌿');
+    }
+  } catch (e) {
+    addBubble('ai', 'うまく つたえられなかったみたい🌷\nでも、わたしは ここにいるよ🌿');
+  }
+}
+
+// 「ほかの人にも話す」＝外部の相談窓口をやさしく表示（押したときだけ・押し付けない）。
+function kodomoShowHotlines_() {
+  addBubble('ai',
+    'こんな 話せる場所も あるよ🌿（いつでも・むりょう）\n\n' +
+    '📞 チャイルドライン\n0120-99-7777（18さいまで・毎日16〜21時）\n\n' +
+    '📞 24時間 子どもSOSダイヤル\n0120-0-78310\n\n' +
+    'いそぐときや、いのちが あぶないと おもったら\n📞 いのちの電話 0570-783-556\n\n' +
+    'どれも、あなたの みかただよ🌸');
 }
 
 // 実装E：menu3を開いたとき、登録済み生徒のピッカーを表示。選ぶと生年月日を再入力せず相談できる。
