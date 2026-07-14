@@ -604,6 +604,20 @@ var SENSEI_MENUS = {
   howto:    { label:'❓ 使い方',            row:2, situation:null      },
 };
 
+// こどもNABItan（serviceType='こども'）用メニュー定義（フェーズ3・v3.62）。
+//   key は GAS webChatReply_ のこども allowed（welcome/menu1〜menu5）と一致させること。
+//   ペルソナ/家族情報/課金などの大人向けメニューは出さない（子ども専用の最小構成）。
+var KODOMO_MENUS = {
+  menu1: { label:'🌸 今日の空もよう', row:1, situation:'menu1', desc:'今日のきみの気分や運を、空のようすでお伝えするよ🌿' },
+  menu2: { label:'🏫 友だち・学校',   row:1, situation:'menu2', desc:'友だちや学校で気になることを話せるよ🌸' },
+  menu3: { label:'🏠 家族のこと',     row:1, situation:'menu3', desc:'おうちの人のことで思っていることを話せるよ🌿' },
+  menu4: { label:'🔮 自分を知る',     row:1, situation:'menu4', desc:'きみ自身のこと、もっと知ってみよう🌸' },
+  menu5: { label:'🆘 たすけて',       row:2, situation:'menu5', desc:'つらいとき、いつでもここにおいで🌿' }
+};
+function isKodomoUser() {   // アカウント種別がこどもか
+  return !!(userInfo && userInfo.serviceType === 'こども');
+}
+
 // 両メニュー開放（実装D）：保育士は 先生モード ⇄ 子育てモード を切替できる。
 //   'sensei'＝先生メニュー・先生プロ枠／'kosodate'＝子育てメニュー・子育て枠（特典・基本無料）。
 var senseiChatMode = 'sensei';
@@ -620,11 +634,13 @@ function isActingSensei() {  // いま先生モードで動作中か（保育士
 }
 // 現在のモードに対応するメニューセット
 function activeMenus() {
+  if (isKodomoUser()) return KODOMO_MENUS;
   if (!isSenseiUser()) return MENUS;
   return isActingSensei() ? SENSEI_MENUS : MENUS;
 }
-// 既定で開くタブ（先生モード＝お迎え／子育てモード・子育てユーザー＝おはよう）
+// 既定で開くタブ（こども＝今日の空もよう／先生モード＝お迎え／子育て＝おはよう）
 function defaultMenuKey() {
+  if (isKodomoUser()) return 'menu1';
   return isActingSensei() ? 'welcome' : 'morning';
 }
 // 先生モード ⇄ 子育てモード の切替
@@ -721,7 +737,10 @@ window.addEventListener('DOMContentLoaded', function() {
     var svcParam  = new URLSearchParams(window.location.search).get('svc');
     // v3.62：「使い方」タイル（?menu=howto）は、チャットを開いた直後に使い方ガイドを表示。
     var menuParam = new URLSearchParams(window.location.search).get('menu');
+    // v3.62：こどもの招待リンク（?kolink=<token>）。子どもがタップして開いた＝アカウントひも付け。
+    var koParam   = new URLSearchParams(window.location.search).get('kolink');
     try {
+      if (koParam) { await bootKodomoLink_(koParam); return; }
       var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
       var data = await r.json();
       if (data.ok && data.registered) {
@@ -750,6 +769,85 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // ================================================================
+// こどもNABItan フェーズ3：招待リンク経由の起動（子どもがリンクをタップ）
+// ================================================================
+async function bootKodomoLink_(token) {
+  // 既にこどもとして登録済みならそのまま。まだなら kodomoLink でひも付け。
+  try {
+    var r = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+    var data = await r.json();
+    if (data && data.ok && data.registered && data.serviceType === 'こども') {
+      userInfo = data; openKodomoAfterLink_(); return;
+    }
+    // このUIDが既に大人（子育て/先生）なら、こども化しない
+    if (data && data.ok && data.registered && data.serviceType && data.serviceType !== 'こども') {
+      showKodomoLinkError_('このLINEは、すでに大人用のNABItanで使われています🌷\nお子さん自身のLINEで招待リンクを開いてください。');
+      return;
+    }
+    var lr = await fetch(GAS_URL + '?action=kodomoLink&uid=' + encodeURIComponent(lineUid) + '&token=' + encodeURIComponent(token));
+    var ld = await lr.json();
+    if (ld && ld.ok) {
+      var r2 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
+      var d2 = await r2.json();
+      if (d2 && d2.ok && d2.registered) { userInfo = d2; openKodomoAfterLink_(); return; }
+    }
+    var emsg = (ld && ld.error === 'uid_is_adult')
+      ? 'このLINEは、すでに大人用のNABItanで使われています🌷\nお子さん自身のLINEで開いてください。'
+      : 'アカウントを つくれませんでした🌷\nおうちの人に、もういちど招待リンクを つくってもらってね。';
+    showKodomoLinkError_(emsg);
+  } catch (e) {
+    showKodomoLinkError_('つうしんエラーです🌷 もういちど ためしてね。');
+  }
+}
+
+function openKodomoAfterLink_() {
+  if (userInfo && !userInfo.nickname) showKodomoNicknameScreen_();
+  else openChat(false);
+}
+
+function showKodomoLinkError_(msg) {
+  document.getElementById('header-title').textContent = 'こどもNABItan';
+  showScreen('chat');
+  document.getElementById('menu-bar').style.display = 'none';
+  var area = document.getElementById('chat-area');
+  area.innerHTML = '';
+  addBubble('system', msg);
+}
+
+function showKodomoNicknameScreen_() {
+  document.getElementById('header-title').textContent = 'こどもNABItan';
+  showScreen('chat');
+  document.getElementById('menu-bar').style.display = 'none';
+  var area = document.getElementById('chat-area');
+  area.innerHTML = '';
+  var card = document.createElement('div');
+  card.className = 'info-card';
+  card.innerHTML = '<div class="card-title">🌸 ニックネームを きめよう</div>'
+    + '<div class="card-text">NABItanが、きみのことを なんて よべばいいかな？\nすきな よび名を おしえてね🌿</div>'
+    + '<input class="form-input" id="ko-nick" type="text" maxlength="20" placeholder="れい：さくら・たろう">';
+  area.appendChild(card);
+  var btn = document.createElement('button');
+  btn.className = 'fam-btn'; btn.style.width = '100%'; btn.textContent = 'これにする🌸';
+  btn.onclick = saveKodomoNickname_;
+  card.appendChild(btn);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function saveKodomoNickname_() {
+  var v = (document.getElementById('ko-nick').value || '').trim();
+  if (!v) { alert('よび名を いれてね🌷'); return; }
+  try {
+    var res = await fetch(GAS_URL + '?action=setKodomoNickname&uid=' + encodeURIComponent(lineUid) + '&nickname=' + encodeURIComponent(v));
+    var d = await res.json();
+    if (d && d.ok) {
+      if (userInfo) userInfo.nickname = d.nickname || v;
+      document.getElementById('menu-bar').style.display = 'block';
+      openChat(false);
+    } else { alert('ほぞんできませんでした🌷 もういちど ためしてね'); }
+  } catch (e) { alert('つうしんエラーです🌷'); }
+}
+
+// ================================================================
 // 画面切り替え
 // ================================================================
 function showScreen(name) {
@@ -773,6 +871,23 @@ function openChat(isNew) {
   // 子育てモードで開始する（先生の子育て特典・方式Y）。
   var _asHint = new URLSearchParams(window.location.search).get('as');
   senseiChatMode = (isSenseiUser() && _asHint === 'kosodate') ? 'kosodate' : 'sensei';
+
+  // こどもNABItan（フェーズ3）：子ども専用のヘッダー・あいさつ。
+  if (isKodomoUser()) {
+    var kname = (userInfo && userInfo.nickname) || '';
+    document.getElementById('header-title').textContent = 'こどもNABItan';
+    showScreen('chat');
+    renderMenuTabs();
+    currentMode = defaultMenuKey();
+    selectMenuTab(currentMode);
+    addBubble('ai',
+      (kname ? 'やあ、' + kname + '🌸\n\n' : 'やあ、きてくれてありがとう🌸\n\n') +
+      '下のボタンから、話したいことを選んでね🌿\n' +
+      'こまったときは【🆘 たすけて】をおしてね。'
+    );
+    return;
+  }
+
   document.getElementById('header-title').textContent =
     isActingSensei() ? '先生NABItan チャット' : 'NABItan チャット';
   showScreen('chat');
@@ -841,6 +956,9 @@ function openKodomoInfoScreen(interactive) {
   }));
   if (interactive) {
     addBubble('system', '👆 上の項目をタップするか、下の入力欄からご質問いただけます🌿\n（こどもNABItanに関するご質問にお答えします）');
+    // こどもNABItan フェーズ3：登録済みの大人に「お子さんにも使わせる」導線。
+    addBubble('ai', '🌸 お子さん本人のスマホでも、こどもNABItanを使わせてあげられます🌿\n登録済みのお子さんごとに、招待リンクをお作りします。');
+    appendActionButtons_([{ label: '📱 お子さんに使わせる（招待リンクを作る）', onclick: gotoKodomoInviteFromInfo_, primary: true }]);
   } else {
     addBubble('system', '👆 上の項目をタップしてご覧ください🌿\n（詳しいご相談は「子育てNABItan」からどうぞ）');
   }
@@ -850,6 +968,15 @@ function showKodomoInfoUnit_(i) {
   var u = KODOMO_INFO_UNITS[i];
   if (!u) return;
   addBubble('ai', '【' + u.title + '】\n' + u.body);
+}
+
+// こども説明画面 → 家族情報エディタ（各子の横の「この子にスマホ」で招待リンク発行）。
+function gotoKodomoInviteFromInfo_() {
+  kodomoInfoActive = false;
+  document.getElementById('input-area').style.display = 'none';
+  openChat(false);
+  if (isSenseiUser()) { senseiChatMode = 'kosodate'; renderMenuTabs(); }  // 先生は子育てモードで子ども一覧を見る
+  openFamilyEditor();
 }
 
 // ================================================================
@@ -1182,9 +1309,62 @@ function famRenderMenu() {
   if (canPartner) html += '<button class="fam-btn" onclick="famAddForm(\'addPartner\')">➕ パートナーを追加</button>';
   html += '<button class="fam-btn" onclick="famEditSelect()">✏️ お名前・生年月日を修正</button>';
   html += '<button class="fam-btn" onclick="famDelSelect()">🗑️ ご家族を削除</button>';
+
+  // こどもNABItan フェーズ3：お子さん本人にスマホ（招待リンク発行）。生年月日ありの子のみ。
+  var invitable = (d.children || []).filter(function(c){ return c.birthdate; });
+  if (invitable.length) {
+    html += '<div style="height:8px"></div>';
+    html += '<div class="fam-note" style="color:var(--muted,#5f6f66);background:transparent;border:none;padding:0 0 4px">📱 お子さん本人のスマホでも使わせる（こどもNABItan）</div>';
+    (d.children || []).forEach(function(c, i) {
+      if (!c.birthdate) return;
+      html += '<button class="fam-btn" onclick="kodomoInvite(' + i + ',\'' + famEsc(c.lastName + c.firstName) + '\')">📱 ' + (c.lastName + c.firstName) + ' にスマホを渡す</button>';
+    });
+  }
+
   html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRemovePanel()">閉じる</button></div>';
   FAM.panel.innerHTML = html;
   famScroll();
+}
+
+// こどもNABItan：お子さんの招待リンクを発行して表示（親が子に送る／QRの代わりにリンクをコピー）。
+async function kodomoInvite(childIndex, childName) {
+  FAM.panel.innerHTML = '<div class="card-title">📱 ' + childName + ' にスマホを渡す</div>'
+    + '<div class="card-text">招待リンクを準備しています…🌿</div>';
+  famScroll();
+  try {
+    var url = GAS_URL + '?action=kodomoInvite&uid=' + encodeURIComponent(lineUid)
+            + '&child=' + encodeURIComponent(childIndex) + asParam();
+    var res = await fetch(url);
+    var d = await res.json();
+    if (!d || !d.ok) {
+      var msg = (d && d.error === 'no_birthdate') ? 'この子は生年月日が未登録のため招待できません🌷\n先に「お名前・生年月日を修正」から登録してください。'
+              : '招待リンクを作れませんでした🌷\n（' + ((d && d.error) || '') + '）';
+      FAM.panel.innerHTML = '<div class="card-title">📱 ' + childName + '</div><div class="card-text">' + msg + '</div>'
+        + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
+      return;
+    }
+    var link = d.url;
+    var html = '<div class="card-title">📱 ' + (d.childName || childName) + ' の招待リンク</div>'
+      + '<div class="card-text">下のリンクを ' + (d.childName || childName) + ' さんに送ってください🌸\n\n'
+      + '① お子さんがリンクをタップ\n② NABItanを友だち追加\n③ 自動で ' + (d.childName || childName) + ' さん専用のこどもNABItanが使えるようになります🌿</div>'
+      + '<div class="share-code" style="word-break:break-all"><b id="kolink">' + link + '</b></div>';
+    FAM.panel.innerHTML = html;
+    var copy = document.createElement('button');
+    copy.className = 'fam-btn'; copy.style.width = '100%'; copy.textContent = '📋 リンクをコピー';
+    copy.onclick = function(){
+      var ok = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(link); ok = true; } } catch(e){}
+      copy.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください';
+    };
+    FAM.panel.appendChild(copy);
+    var back = document.createElement('div'); back.className = 'fam-actions';
+    back.innerHTML = '<button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button>';
+    FAM.panel.appendChild(back);
+    famScroll();
+  } catch(e) {
+    FAM.panel.innerHTML = '<div class="card-text">通信エラーで招待リンクを作れませんでした🌷</div>'
+      + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
+  }
 }
 
 function famMemberRow(label, name, birth) {
