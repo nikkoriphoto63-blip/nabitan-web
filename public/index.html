@@ -1348,10 +1348,47 @@ async function kodomoInvite(childIndex, childName) {
         + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button></div>';
       return;
     }
+    var nm = d.childName || childName;
+    // すでにこどもアカウントがある子＝課金状態＋「利用を続ける（¥800/月）」を表示（フェーズ4）。
+    if (d.linked && d.billing) {
+      var b = d.billing;
+      var statusText, showSub = false;
+      if (b.stage === 'subscribed') {
+        statusText = nm + ' さんは、こどもNABItanを ご利用中です🌸（月額800円のプラン）';
+      } else if (b.stage === 'expired') {
+        statusText = nm + ' さんのお試し期間は終了しました🌷\n続けてご利用いただくには、下のボタンからお手続きください（月額800円）。';
+        showSub = true;
+      } else {
+        statusText = nm + ' さんは、こどもNABItanをお試し中です🌿'
+          + (b.daysLeft != null ? '（あと' + b.daysLeft + '日）' : '')
+          + '\nお試し終了後も続ける場合は、下のボタンからお手続きください（月額800円）。';
+        showSub = true;
+      }
+      FAM.panel.innerHTML = '<div class="card-title">📱 ' + nm + '（こどもNABItan）</div>'
+        + '<div class="card-text">' + statusText + '</div>';
+      if (showSub) {
+        var sub = document.createElement('button');
+        sub.className = 'fam-btn'; sub.style.width = '100%';
+        sub.textContent = '💳 ' + nm + ' の利用を続ける（月額800円）';
+        sub.onclick = function(){ window.open(b.subscribeUrl, '_blank'); };
+        FAM.panel.appendChild(sub);
+        var note = document.createElement('div');
+        note.className = 'card-text'; note.style.fontSize = '12px'; note.style.color = 'var(--muted,#5f6f66)';
+        note.textContent = '※お支払いは保護者の方のカードで、お子さんごとの月額です。';
+        FAM.panel.appendChild(note);
+      }
+      var back0 = document.createElement('div'); back0.className = 'fam-actions';
+      back0.innerHTML = '<button class="fam-cancel" style="width:100%" onclick="famRenderMenu()">もどる</button>';
+      FAM.panel.appendChild(back0);
+      famScroll();
+      return;
+    }
+    // まだひも付いていない子＝招待リンクを表示。
     var link = d.url;
-    var html = '<div class="card-title">📱 ' + (d.childName || childName) + ' の招待リンク</div>'
-      + '<div class="card-text">下のリンクを ' + (d.childName || childName) + ' さんに送ってください🌸\n\n'
-      + '① お子さんがリンクをタップ\n② NABItanを友だち追加\n③ 自動で ' + (d.childName || childName) + ' さん専用のこどもNABItanが使えるようになります🌿</div>'
+    var html = '<div class="card-title">📱 ' + nm + ' の招待リンク</div>'
+      + '<div class="card-text">下のリンクを ' + nm + ' さんに送ってください🌸\n\n'
+      + '① お子さんがリンクをタップ\n② NABItanを友だち追加\n③ 自動で ' + nm + ' さん専用のこどもNABItanが使えるようになります🌿\n\n'
+      + '※はじめの数日間はお試し（無料）。続ける場合は月額800円です。</div>'
       + '<div class="share-code" style="word-break:break-all"><b id="kolink">' + link + '</b></div>';
     FAM.panel.innerHTML = html;
     var copy = document.createElement('button');
