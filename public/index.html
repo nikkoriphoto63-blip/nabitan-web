@@ -1708,6 +1708,18 @@ var HOWTO_SECTIONS = [
       '🚨 災害・安否 → 非常時に施設へ安否を報告\n' +
       '🌿 先生の個室 → 役割を脱いでほっと一息つく場所\n\n' +
       '毎朝のメッセージで、その日の気配もお届けします🌸' },
+    { label: 'パソコンでも使えます', body:
+      '先生NABItanは、スマホのLINEだけでなく、パソコンのブラウザからも使えます🌿\n\n' +
+      '【使い方】\n' +
+      '① パソコンでChromeやSafariを開く\n' +
+      '② アドレス欄に入力：\n' +
+      '　 nabitan-web.pages.dev\n' +
+      '③ 「LINEでログイン」の画面が出ます\n' +
+      '④ スマホのLINEでQRコードを読み取り、表示された数字を入力すると入れます🌸\n\n' +
+      '一度ログインすれば、次からは自動で開きます。\n' +
+      '報告メールの文面をパソコンで作ってコピーするときなどに便利です📋\n\n' +
+      '下のボタンでURLをコピーして、パソコンにメールなどで送ることもできます🌿',
+      button: { text: '📋 URLをコピー', copy: 'https://nabitan-web.pages.dev' } },
     { label: '園児・生徒の登録について', body:
       'お試し登録のときに、まず5人まで園児・生徒を登録できます🌿\n\n' +
       '登録できる人数は、合計40人までです🌸\n\n' +
@@ -1784,10 +1796,24 @@ function howtoRenderTopics() {
 function howtoOpenTopic(i) {
   var t = HOWTO_FLAT[i];
   var html = '<div class="card-title">' + t.label + '</div>'
-    + '<div class="card-text">' + t.body + '</div>'
-    + '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="howtoRenderTopics()">← 目次にもどる</button></div>';
+    + '<div class="card-text">' + t.body + '</div>';
+  // 任意：トピックにコピーボタン（例＝PCログインURL）
+  if (t.button && t.button.copy) {
+    html += '<div class="fam-actions"><button class="fam-btn" style="width:100%" '
+          + 'onclick="howtoCopy_(this,\'' + t.button.copy + '\')">' + t.button.text + '</button></div>';
+  }
+  html += '<div class="fam-actions"><button class="fam-cancel" style="width:100%" onclick="howtoRenderTopics()">← 目次にもどる</button></div>';
   HOWTO.panel.innerHTML = html;
   howtoScroll();
+}
+
+// 使い方トピックのコピーボタン（クリップボードにテキストをコピー）
+function howtoCopy_(btn, text) {
+  var ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text); ok = true; }
+  } catch (e) {}
+  btn.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください：' + text;
 }
 
 // ================================================================
