@@ -274,8 +274,10 @@ body{
   <div class="icon">🌷</div>
   <div class="msg">
     このページはLINEの<br>NABItanから届いたリンクで<br>開いてください🌿<br><br>
-    リッチメニューの<br>「おやこ向け」をタップすると<br>リンクが届きます🌸
+    リッチメニューの<br>「おやこ向け」をタップすると<br>リンクが届きます🌸<br><br>
+    <span style="font-size:13px;color:#888;">パソコンからご利用の方は<br>下のボタンからLINEでログインできます🌸</span>
   </div>
+  <button class="btn-primary" onclick="retryLineLogin_()">LINEでログイン</button>
 </div>
 
 <!-- ② ウェルカム画面（未登録） -->
@@ -718,14 +720,43 @@ async function resolveUid_() {
     if (window.liff && LIFF_ID && LIFF_ID !== 'ここにLIFF_IDを貼る') {
       await liff.init({ liffId: LIFF_ID });
       if (liff.isLoggedIn()) {
+        // ログイン済み（LINE内 or PCでログイン後に戻ってきた）→ userId確定
+        sessionStorage.removeItem('nabitanLoginTried');   // 次回のため誘導フラグを解除
         var prof = await liff.getProfile();
         try { liffIdToken = liff.getIDToken() || ''; } catch (e) {}
         if (prof && prof.userId) return prof.userId;
+      } else {
+        // 未ログイン。まず旧方式の ?uid= を尊重（後方互換・既存リンクを壊さない）
+        var p0 = new URLSearchParams(window.location.search);
+        if (p0.get('uid')) return p0.get('uid');
+        // ?uid= も無い＝PC/外部ブラウザから直接来た（先生等）→ LINEログインへ誘導。
+        //   PCでLINE未ログインなら、LINE公式のログイン画面がQRコード＋6桁認証を出す。
+        //   認証後は redirectUri（今のURL）に戻り、上の isLoggedIn() 分岐でuserIdが取れる。
+        //   二重リダイレクト防止：1セッションにつき1回だけ試みる。
+        if (!sessionStorage.getItem('nabitanLoginTried')) {
+          sessionStorage.setItem('nabitanLoginTried', '1');
+          liff.login({ redirectUri: window.location.href });
+          return '';   // liff.login はページ遷移するため以降は実行されない
+        }
+        // 既に一度試みて戻ったのに未ログイン＝ログイン中断/失敗 → 下のフォールバックへ
       }
     }
   } catch (e) { /* LIFF不可（外部ブラウザ等）→ URL param にフォールバック */ }
   var params = new URLSearchParams(window.location.search);
   return params.get('uid') || '';
+}
+
+// PC（外部ブラウザ）でエラー画面から手動でLINEログインし直す。
+//   誘導フラグを解除してから login を呼ぶ（中断後もう一度QRを出せる）。
+function retryLineLogin_() {
+  try {
+    sessionStorage.removeItem('nabitanLoginTried');
+    if (window.liff && LIFF_ID && LIFF_ID !== 'ここにLIFF_IDを貼る') {
+      liff.login({ redirectUri: window.location.href });
+    } else {
+      location.reload();
+    }
+  } catch (e) { location.reload(); }
 }
 
 window.addEventListener('DOMContentLoaded', function() {
