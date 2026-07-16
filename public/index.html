@@ -390,6 +390,9 @@ body{
       <label class="form-label">ファミリーID（英数字8文字）</label>
       <input class="form-input" id="fid-input" type="text" placeholder="例：A1B2C3D4" maxlength="8">
     </div>
+    <label class="form-label" style="margin-top:14px;">紹介してくれた方のLINE ID（任意）</label>
+    <input class="form-input" id="ref-input" type="text" placeholder="例：nabitan123">
+    <div class="hint">お友達や先生の紹介で登録する場合、その方のLINE IDを入れてください🌸<br>（紹介した方に紹介カウントが付きます・空欄でもOK）</div>
     <div class="step-nav">
       <button class="btn-back-step" onclick="goStep(5)">戻る</button>
       <button class="btn-next" id="btn-s6" onclick="submitRegister()" disabled>内容を確認</button>
@@ -405,6 +408,9 @@ body{
     <label class="form-label">施設（園長）の連絡先メール（任意）</label>
     <input class="form-input" id="s-emergency" type="email" inputmode="email" placeholder="例：en@example.com">
     <div class="hint">災害時の安否報告や、保護者対応の文面を施設長に共有するのに使います🌸<br>（園長先生などのメール・空欄でも後から登録できます）</div>
+    <label class="form-label" style="margin-top:14px;">紹介してくれた方のLINE ID（任意）</label>
+    <input class="form-input" id="s-ref" type="text" placeholder="例：nabitan123">
+    <div class="hint">どなたかの紹介で登録する場合、その方のLINE IDを入れてください🌸<br>（紹介した方に紹介カウントが付きます・空欄でもOK）</div>
     <div class="step-nav">
       <button class="btn-back-step" onclick="goStep(3)">戻る</button>
       <button class="btn-next" id="btn-sensei" onclick="goStep('sensei-students')">次へ</button>
@@ -602,6 +608,7 @@ var SENSEI_MENUS = {
              desc:'つらいとき、静かに休むための部屋です🌿' },
   students: { label:'👶 生徒管理',          row:2, situation:null      },
   persona:  { label:'🎭 キャラクター設定',  row:2, situation:null      },
+  share:    { label:'📢 友達紹介',          row:2, situation:null      },
   billing:  { label:'💳 ご契約状況',        row:2, situation:null      },
   howto:    { label:'❓ 使い方',            row:2, situation:null      },
 };
@@ -1254,7 +1261,7 @@ async function setPersonaWeb(key, name) {
 // 📢 友達紹介（紹介コード・QRをWeb表示）
 // ================================================================
 async function showShareInfo() {
-  // 登録直後は userInfo が未取得のため、紹介コード/QRが空にならないよう取得を保証
+  // 登録直後は userInfo が未取得のため、LINE ID/紹介人数/QRが空にならないよう取得を保証
   if (!userInfo || !userInfo.qrUrl) {
     try {
       var r0 = await fetch(GAS_URL + '?action=getUserInfo&uid=' + encodeURIComponent(lineUid));
@@ -1262,8 +1269,8 @@ async function showShareInfo() {
       if (d0 && d0.ok) userInfo = d0;
     } catch(e) {}
   }
-  var code = (userInfo && userInfo.referralCode) || '';
-  var lid  = (userInfo && userInfo.lineId) || '';
+  var myId = (userInfo && userInfo.lineId) || '';
+  var cnt  = (userInfo && userInfo.referralCount) || 0;
   var qr   = (userInfo && userInfo.qrUrl) || '';
   var fid  = (userInfo && userInfo.familyId) || '';
   var isKosodate = !userInfo || userInfo.serviceType === '子育て';
@@ -1273,13 +1280,18 @@ async function showShareInfo() {
 
   var html = '<div class="card-title">📢 友達紹介</div>';
   if (qr) html += '<img class="share-qr" src="' + qr + '" alt="友達追加QR">';
-  html += '<div class="card-text">このQRコードからお友達がNABItanを友だち追加できます🌸</div>';
-  if (code && code.indexOf('NAB-') === 0) {
-    html += '<div class="share-code"><span>あなたの紹介コード</span><b id="ref-code">' + code + '</b></div>'
-          + '<div class="card-text">お友達が登録時にこのコードを入力すると、おふたりとも無料期間が7日間延長されます🌿</div>';
-  } else if (lid) {
-    html += '<div class="card-text">私のLINE ID：<b>' + lid + '</b>\n登録時に入力してもらってください🌿</div>';
+  html += '<div class="card-text">このQRコードからお友達がNABItanを友だち追加できます🌸<br>'
+        + 'お友達が登録するとき「紹介者のLINE ID」の欄に<b>あなたのLINE ID</b>を入れてもらうと、紹介としてカウントされます🌿</div>';
+  if (myId) {
+    html += '<div class="share-code"><span>あなたのLINE ID（登録済み）</span><b id="my-line-id">@' + myId + '</b></div>'
+          + '<div class="share-code"><span>これまでの紹介</span><b>' + cnt + '人</b></div>';
+  } else {
+    html += '<div class="card-text">⚠️ <b>あなたのLINE IDがまだ登録されていません。</b><br>'
+          + '先に登録しておかないと、お友達が入力しても紹介カウントされません🌷</div>';
   }
+  html += '<label class="form-label" style="margin-top:8px;">' + (myId ? 'LINE IDを変更する' : 'あなたのLINE IDを登録する') + '</label>'
+        + '<input class="form-input" id="myid-input" type="text" placeholder="例：nabitan123">'
+        + '<div class="hint">自分のLINE IDの調べ方：LINEアプリ →「ホーム」→ 設定（歯車）→「プロフィール」→「ID」🌿</div>';
   if (fid && isKosodate) {
     html += '<div class="share-code"><span>あなたのファミリーID</span><b id="fam-id">' + fid + '</b></div>'
           + '<div class="card-text">パートナーが登録時にこのIDを入力すると、ファミリー料金（月額800円）でご利用いただけます🌿</div>';
@@ -1287,23 +1299,14 @@ async function showShareInfo() {
   card.innerHTML = html;
   area.appendChild(card);
 
-  if (code && code.indexOf('NAB-') === 0) {
-    var btn = document.createElement('button');
-    btn.className = 'fam-cancel';
-    btn.style.width = '100%';
-    btn.style.marginTop = '4px';
-    btn.textContent = '📋 紹介コードをコピー';
-    btn.onclick = function() {
-      var ok = false;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code); ok = true;
-        }
-      } catch(e) { ok = false; }
-      btn.textContent = ok ? '✅ コピーしました' : '長押しでコピーしてください：' + code;
-    };
-    card.appendChild(btn);
-  }
+  // LINE ID 登録／変更ボタン
+  var sbtn = document.createElement('button');
+  sbtn.className = 'fam-cancel';
+  sbtn.style.width = '100%';
+  sbtn.style.marginTop = '4px';
+  sbtn.textContent = myId ? '✏️ LINE IDを変更する' : '📝 LINE IDを登録する';
+  sbtn.onclick = function() { saveMyLineId(card, sbtn); };
+  card.appendChild(sbtn);
   if (fid && isKosodate) {
     var fbtn = document.createElement('button');
     fbtn.className = 'fam-cancel';
@@ -1322,6 +1325,40 @@ async function showShareInfo() {
     card.appendChild(fbtn);
   }
   area.scrollTop = area.scrollHeight;
+}
+
+// 自分のLINE IDをGASに登録（友達紹介パネルの登録/変更ボタン・v3.66）。
+//   成功したらパネルを描き直して「登録済み＋紹介人数」を表示する。
+async function saveMyLineId(card, btn) {
+  var input = document.getElementById('myid-input');
+  var v = ((input && input.value) || '').trim();
+  if (!v) { alert('LINE IDを入力してください🌷'); return; }
+  var oldLabel = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '登録中…'; }
+  try {
+    var res = await fetch(GAS_URL + '?action=setMyLineId&uid=' + encodeURIComponent(lineUid)
+                          + '&value=' + encodeURIComponent(v));
+    var d = await res.json();
+    if (d && d.ok) {
+      if (userInfo) userInfo.lineId = d.lineId;
+      alert('登録しました🌸\nあなたのLINE ID：@' + d.lineId);
+      if (card && card.parentNode) card.parentNode.removeChild(card);
+      showShareInfo();   // 最新の状態（登録済み表示・紹介人数）で描き直す
+      return;
+    }
+    if (d && d.error === 'invalid_line_id') {
+      alert('LINE IDの形式が正しくないようです🌷\n半角の英数字と . _ - （4〜20文字）で入力してください。\n※「@」は付けても付けなくてもOKです');
+    } else if (d && d.error === 'line_id_taken') {
+      alert('このLINE IDは別の方がすでに登録しています🌷\n入力に間違いがないかご確認ください。');
+    } else if (d && d.error === 'not_registered') {
+      alert('ユーザー情報が見つかりませんでした🌷\n一度画面を閉じて開き直してみてください。');
+    } else {
+      alert('登録に失敗しました🌷\n' + ((d && d.error) || '通信エラー'));
+    }
+  } catch(e) {
+    alert('通信エラーが発生しました🌷 もう一度お試しください。');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = oldLabel; }
 }
 
 // ================================================================
@@ -2632,6 +2669,10 @@ async function submitRegister() {
     regData.planType = regData.familyIdInput ? 'FAMILY' : 'MAIN';
   }
 
+  // 友達紹介（v3.66）：紹介者のLINE ID（任意・子育て/先生共通）。照合とカウントはGAS側。
+  var refEl = document.getElementById(regIsSensei ? 's-ref' : 'ref-input');
+  regData.referrerLineId = refEl ? (refEl.value || '').trim() : '';
+
   if (regIsSensei) {
     // 先生登録：勤務先施設・緊急連絡先を付与。先生シート(1TUOa)の行はパートナー/子ども/familyIdを使わない。
     regData.serviceType      = '保育士';
@@ -2703,6 +2744,7 @@ function renderRegisterConfirm() {
     h += row('お名前', person(p));
     h += row('勤務先', esc(regData.workplace));
     h += row('園長メール', esc(regData.emergencyContact));
+    h += row('紹介者のLINE ID', esc(regData.referrerLineId));
     h += row('お試し園児', kids(regData.trialStudents));
     var ko = regData.kosodate || {};
     h += '<div style="font-weight:600;margin:14px 0 6px;">🍼 あなた自身の子育て（特典・任意）</div>';
@@ -2716,6 +2758,7 @@ function renderRegisterConfirm() {
     h += row('パートナー', person(regData.partner));
     h += row('お子さん', kids(regData.children));
     h += row('ファミリーID', esc(regData.familyIdInput));
+    h += row('紹介者のLINE ID', esc(regData.referrerLineId));
   }
   return h;
 }
