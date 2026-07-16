@@ -1283,8 +1283,13 @@ async function showShareInfo() {
   html += '<div class="card-text">このQRコードからお友達がNABItanを友だち追加できます🌸<br>'
         + 'お友達が登録するとき「紹介者のLINE ID」の欄に<b>あなたのLINE ID</b>を入れてもらうと、紹介としてカウントされます🌿</div>';
   if (myId) {
+    // クーポン（v3.67）：every人ごとに当月チャット回数へ couponCounts 回ぶんプレゼント（何度でも）
+    var every        = (userInfo && userInfo.referralCouponEvery)  || 4;
+    var couponCounts = (userInfo && userInfo.referralCouponCounts) || 60;
+    var left         = every - (cnt % every);
     html += '<div class="share-code"><span>あなたのLINE ID（登録済み）</span><b id="my-line-id">@' + myId + '</b></div>'
-          + '<div class="share-code"><span>これまでの紹介</span><b>' + cnt + '人</b></div>';
+          + '<div class="share-code"><span>これまでの紹介</span><b>' + cnt + '人</b></div>'
+          + '<div class="card-text">🎁 あと<b>' + left + '人</b>のご紹介で、その月のチャット回数に<b>' + couponCounts + '回ぶん</b>をプレゼント！<br>（' + every + '人ごとに何度でも🌸）</div>';
   } else {
     html += '<div class="card-text">⚠️ <b>あなたのLINE IDがまだ登録されていません。</b><br>'
           + '先に登録しておかないと、お友達が入力しても紹介カウントされません🌷</div>';
