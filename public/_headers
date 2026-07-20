@@ -1,0 +1,17 @@
+# Cloudflare Pages のレスポンスヘッダー設定
+#
+# 【なぜ必要か】
+#   LINE内ブラウザ（LIFF・特にiPhone）はHTMLを強くキャッシュするため、
+#   更新をpushしても端末に古い index.html が残り続ける。
+#   2026/07/20 の災害時報告の修正で実際に発生（GAS側は新・画面側は旧のまま動作）。
+#
+# 【no-cache の意味】
+#   「使うな」ではなく「使う前に必ずサーバーへ確認しろ」。
+#   中身が変わっていなければ 304 が返るだけなので通信量はほぼ増えない。
+#   ※ no-store（毎回まるごと再取得）ではないので表示は遅くならない。
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
