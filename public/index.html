@@ -1998,15 +1998,49 @@ async function studentDeleteOne(sid, name) {
 //   kind='safety'：menu6 災害・安否報告／kind='share'：menu4 保護者対応の文面を施設長へ共有
 //   いずれも AI生成テキストを本文に、施設（園長）の連絡先メール宛の mailto を開く。
 // ================================================================
-function buildFacilityMailto_(text, kind) {
-  var email = (userInfo && userInfo.emergencyContact) || '';
+// 報告用要約の抽出（v3.68）
+//   AI応答は「気づかい → 報告用の要約 → 次の一歩」が一続きのため、そのままコピーすると会話全体が入る。
+//   prompts_sensei.gs 側で要約を目印で囲ませ、その中だけをコピー／メール本文に使う。
+//   目印が無い応答（AIが囲み忘れ・旧プロンプト）は全文にフォールバック＝壊れない。
+var REPORT_BLOCK_RE = /-{2,}\s*報告ここから\s*-{2,}\r?\n?([\s\S]*?)\r?\n?-{2,}\s*報告ここまで\s*-{2,}/;
+
+function extractReportText_(text) {
+  var m = REPORT_BLOCK_RE.exec(text || '');
+  return m ? m[1].trim() : (text || '');
+}
+
+// 画面表示用：目印の線だけを消す（要約本文は残す）。会話の見た目を自然に保つ。
+function stripReportMarkers_(text) {
+  return (text || '').replace(/-{2,}\s*報告ここ(から|まで)\s*-{2,}\r?\n?/g, '');
+}
+
+function buildFacilitySubject_(kind) {
   var who   = (userInfo && userInfo.firstName) || '';
   var place = (userInfo && userInfo.workplace) || '';
   var label = (kind === 'share') ? '【保護者対応の共有】' : '【安否報告】';
-  var subject = label + who + '先生' + (place ? '（' + place + '）' : '');
+  return label + who + '先生' + (place ? '（' + place + '）' : '');
+}
+
+function buildFacilityMailto_(text, kind) {
+  var email = (userInfo && userInfo.emergencyContact) || '';
   return 'mailto:' + encodeURIComponent(email)
-       + '?subject=' + encodeURIComponent(subject)
+       + '?subject=' + encodeURIComponent(buildFacilitySubject_(kind))
        + '&body='    + encodeURIComponent(text || '');
+}
+
+// PCで既定のメールアプリが未設定だと mailto: がブラウザに横取りされメーラーが開かない。
+// その保険として Gmail の作成画面を直接開く導線を用意する（PC表示時のみ）。
+function buildGmailComposeUrl_(text, kind) {
+  var email = (userInfo && userInfo.emergencyContact) || '';
+  return 'https://mail.google.com/mail/?view=cm&fs=1'
+       + '&to='  + encodeURIComponent(email)
+       + '&su='  + encodeURIComponent(buildFacilitySubject_(kind))
+       + '&body=' + encodeURIComponent(text || '');
+}
+
+// LINE内ブラウザ・スマホでは mailto: が正常に働くため、Gmailボタンはデスクトップにのみ出す。
+function isDesktopBrowser_() {
+  return !/Android|iPhone|iPad|iPod|Mobile|Line\//i.test(navigator.userAgent || '');
 }
 
 function shareToFacility(text, kind) {
@@ -2016,6 +2050,10 @@ function shareToFacility(text, kind) {
   window.location.href = buildFacilityMailto_(text, kind);
 }
 
+function shareToFacilityGmail_(text, kind) {
+  window.open(buildGmailComposeUrl_(text, kind), '_blank');
+}
+
 // AI応答の下に「📋 コピー」＋「📨 共有」ボタンを出す（menu6=安否報告 / menu4=施設長へ共有）
 //   文面がコピーしづらいと離脱要因になるため、コピー導線を最優先で用意する（PC/iPadでも有効）。
 function appendFacilityButton(text, kind) {
@@ -2023,20 +2061,33 @@ function appendFacilityButton(text, kind) {
   var wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:2px 0 12px';
 
+  // コピー・メールに使うのは会話全体ではなく【報告用の要約】のみ（v3.68）
+  var report = extractReportText_(text);
+
   var copyBtn = document.createElement('button');
   copyBtn.className = 'btn-outline';
   copyBtn.style.cssText = 'width:auto;padding:10px 18px;font-size:14px';
   copyBtn.textContent = '📋 文面をコピー';
-  copyBtn.onclick = function(){ copyTextToClipboard_(text, copyBtn); };
+  copyBtn.onclick = function(){ copyTextToClipboard_(report, copyBtn); };
 
   var btn = document.createElement('button');
   btn.className = 'btn-primary';
   btn.style.cssText = 'width:auto;padding:10px 18px;font-size:14px';
   btn.textContent = (kind === 'share') ? '📨 施設長に共有' : '📨 施設に報告';
-  btn.onclick = function(){ shareToFacility(text, kind); };
+  btn.onclick = function(){ shareToFacility(report, kind); };
 
   wrap.appendChild(copyBtn);
   wrap.appendChild(btn);
+
+  // PC：既定メールアプリ未設定でもメールを作成できる保険（スマホ／LINE内では非表示）
+  if (isDesktopBrowser_()) {
+    var gbtn = document.createElement('button');
+    gbtn.className = 'btn-outline';
+    gbtn.style.cssText = 'width:auto;padding:10px 18px;font-size:14px';
+    gbtn.textContent = '📧 Gmailで開く';
+    gbtn.onclick = function(){ shareToFacilityGmail_(report, kind); };
+    wrap.appendChild(gbtn);
+  }
   area.appendChild(wrap);
   area.scrollTop = area.scrollHeight;
 }
@@ -2093,7 +2144,7 @@ async function startMenuChat(menuKey) {
     // reset=true：メニュー切替時はGAS側セッション履歴をクリアして開始
     var reply = await gasChat(situation, '開始', true);
     removeTyping();
-    if (reply) addBubble('ai', reply);   // null＝先生失効の移行確認を描画済み（Step4）
+    if (reply) addBubble('ai', stripReportMarkers_(reply));   // null＝先生失効の移行確認を描画済み（Step4）
     chatHistory = [];  // 会話履歴はGASセッションが保持する
   } catch(e) {
     removeTyping();
@@ -2406,7 +2457,8 @@ async function sendMessage() {
     // 会話履歴はGASセッションが保持。最新発話のみ送る（reset=false）
     var reply = await gasChat(currentMode, text, false);
     removeTyping();
-    if (reply) addBubble('ai', reply);   // null＝先生失効の移行確認を描画済み（Step4）
+    // 表示は目印の線だけ消す（要約本文は残す）。ボタンには元テキストを渡し要約を切り出す（v3.68）
+    if (reply) addBubble('ai', stripReportMarkers_(reply));   // null＝先生失効の移行確認を描画済み（Step4）
     // 先生メニュー：menu6=安否を施設に報告／menu4=保護者対応の文面を施設長に共有 のボタンを添える
     if (reply && isActingSensei() && currentMode === 'menu6') appendFacilityButton(reply, 'safety');
     if (reply && isActingSensei() && currentMode === 'menu4') appendFacilityButton(reply, 'share');
