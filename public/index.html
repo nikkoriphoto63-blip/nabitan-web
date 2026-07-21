@@ -532,6 +532,16 @@ var liffIdToken = '';                        // ID Token（将来のGAS検証用
 // ================================================================
 var lineUid     = '';
 var userInfo    = null;
+
+// アフィリエイト（v3.69）：外交員の専用リンク（?agentCode=A1 等）から来た時だけ捕捉する。
+//   LIFFログインのリダイレクトでURLパラメータが失われる場合に備え、最初に読めた時点で
+//   sessionStorageへ保存しておく（一度捕捉したら以後のリダイレクトでは上書きしない）。
+(function captureAffiliateAgentCode_() {
+  try {
+    var ac = new URLSearchParams(window.location.search).get('agentCode');
+    if (ac) sessionStorage.setItem('nabitanAffiliateAgentCode', ac);
+  } catch (e) { /* noop */ }
+})();
 var regData     = {role:'', parent:{}, partner:null, children:[], familyIdInput:null, planType:'MAIN', serviceType:'子育て'};
 var children    = [];
 var trialStudents = [];   // 先生：登録時のお試し園児（生徒名簿Docへ・child5枠は使わない・実装C改）
@@ -2729,6 +2739,10 @@ async function submitRegister() {
   // 友達紹介（v3.66）：紹介者のLINE ID（任意・子育て/先生共通）。照合とカウントはGAS側。
   var refEl = document.getElementById(regIsSensei ? 's-ref' : 'ref-input');
   regData.referrerLineId = refEl ? (refEl.value || '').trim() : '';
+
+  // アフィリエイト（v3.69）：外交員の専用リンク経由の時だけ付く（手入力なし・GAS側で検証）。
+  try { regData.affiliateAgentCode = sessionStorage.getItem('nabitanAffiliateAgentCode') || ''; }
+  catch (e) { regData.affiliateAgentCode = ''; }
 
   if (regIsSensei) {
     // 先生登録：勤務先施設・緊急連絡先を付与。先生シート(1TUOa)の行はパートナー/子ども/familyIdを使わない。
